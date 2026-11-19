@@ -1,8 +1,8 @@
-import { SharingSettings } from "./ShareDialog";
 import { tr, currentLanguage } from "../i18n/core.ts";
 import { changeLanguage, isAppLanguage, LANGUAGE_OPTIONS } from "../i18n/core";
 import { useLanguage } from "../i18n/react";
 import { useCallback, useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getAllWebviewWindows } from "@tauri-apps/api/webviewWindow";
 import { emit, listen } from "@tauri-apps/api/event";
@@ -27,7 +27,6 @@ import {
   Play,
   Plus,
   RotateCcw,
-  Share2,
   Sun,
   Trash2,
   Upload,
@@ -120,6 +119,7 @@ import {
   type GitInfo,
 } from "../lib/git";
 import { basename, readFile, writeFile } from "../lib/fs";
+import { isMac, isWindows } from "../lib/platform";
 import { copyText } from "../lib/clipboard";
 import {
   BUILTIN_THEMES,
@@ -149,8 +149,7 @@ type TabId =
   | "coderun"
   | "models"
   | "sync"
-  | "security"
-  | "sharing";
+  | "security";
 
 interface Tab {
   id: TabId;
@@ -169,7 +168,6 @@ const tabs: Tab[] = [
   { id: "models", get label() { return tr("AI笔记助手"); }, get caption() { return tr("模型、字号与 API Key"); }, icon: <Bot size={16} /> },
   { id: "sync", get label() { return tr("远程同步"); }, get caption() { return tr("Git 仓库同步"); }, icon: <ArrowDownUp size={16} /> },
   { id: "security", get label() { return tr("加密"); }, get caption() { return tr("笔记内容加密口令"); }, icon: <Lock size={16} /> },
-  { id: "sharing", get label() { return tr("分享服务"); }, get caption() { return tr("链接分享与服务配置"); }, icon: <Share2 size={16} /> },
 ];
 
 /** Initial tab from the `tab` URL param (set by openSettings), else 外观. */
@@ -207,6 +205,8 @@ export function SettingsWindow() {
   const editorLineNumbers = useAppStore((s) => s.editorLineNumbers);
   const setEditorLineNumbers = useAppStore((s) => s.setEditorLineNumbers);
   const editorMaxTabs = useAppStore((s) => s.editorMaxTabs);
+  const instantNotes = useAppStore((s) => s.instantNotes);
+  const setInstantNotes = useAppStore((s) => s.setInstantNotes);
   const setEditorMaxTabs = useAppStore((s) => s.setEditorMaxTabs);
   const editorKeybindings = useAppStore((s) => s.editorKeybindings);
   const setEditorKeybinding = useAppStore((s) => s.setEditorKeybinding);
@@ -284,7 +284,7 @@ export function SettingsWindow() {
         </nav>
 
         <div className="select-none px-4 pb-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
-          Idea Note
+          Lite Note
         </div>
       </aside>
 
@@ -329,6 +329,7 @@ export function SettingsWindow() {
                     {LANGUAGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </Row>
+                {(isWindows || isMac) && <LaunchAtLoginSetting />}
               </Card>
               <ThemeSection
                 themeId={themeId}
@@ -412,6 +413,9 @@ export function SettingsWindow() {
                 </Row>
                 <Row title={tr("显示行号")} desc={tr("在 Markdown 源码模式和其他文本文件中显示")}>
                   <Toggle checked={editorLineNumbers} onChange={setEditorLineNumbers} />
+                </Row>
+                <Row title={tr("用日期时间命名并自动保存")} desc={tr("新建笔记时自动使用年月日-时分秒作标题，编辑和关闭时自动保存")}>
+                  <Toggle checked={instantNotes} onChange={setInstantNotes} />
                 </Row>
                 <Row title={tr("同时打开文件数")} desc={tr("编辑器标签栏最多保留的文件数，超出后自动关闭最早的")}>
                   <Stepper
@@ -575,7 +579,6 @@ export function SettingsWindow() {
           )}
           {activeTab === "sync" && <SyncTab />}
           {activeTab === "security" && <SecurityTab />}
-          {activeTab === "sharing" && <SharingSettings />}
         </div>
       </section>
     </div>
@@ -662,6 +665,8 @@ function ShortcutsTab({
   onResetAll: () => void;
 }) {
   useLanguage();
+  const doubleCtrlActivation = useAppStore((s) => s.doubleCtrlActivation);
+  const setDoubleCtrlActivation = useAppStore((s) => s.setDoubleCtrlActivation);
   // Effective key -> command ids, so a combo bound to two commands is flagged.
   const keyUsers = new Map<string, string[]>();
   for (const cmd of [...APP_COMMANDS, ...EDITOR_COMMANDS]) {
@@ -686,6 +691,13 @@ function ShortcutsTab({
 
   return (
     <div className="space-y-4">
+      {isWindows && (
+        <Card>
+          <Row title={tr("双击 Ctrl 显示或隐藏窗口")} desc={tr("窗口在前台时隐藏，从其他应用双击可切回")}>
+            <Toggle checked={doubleCtrlActivation} onChange={setDoubleCtrlActivation} />
+          </Row>
+        </Card>
+      )}
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>
           {tr("点击按键框后直接按下想要的组合键即可重新绑定。")}<br />
@@ -1242,7 +1254,7 @@ function ConnectedSection({
         </Row>
         <Row
           title={tr("新建的文件自动添加到 Git")}
-          desc={tr("在 Idea Note 中新建、粘贴、拖入的文件立即纳入同步；其他新文件需在“手动同步”中添加后才会提交")}
+          desc={tr("在 Lite Note 中新建、粘贴、拖入的文件立即纳入同步；其他新文件需在“手动同步”中添加后才会提交")}
         >
           <Toggle checked={config.autoAddNew} onChange={(autoAddNew) => updateConfig({ autoAddNew })} />
         </Row>
@@ -2022,6 +2034,8 @@ function ModelsTab({
   aiSessionHistoryLimit: number;
   setAiSessionHistoryLimit: (limit: number) => void;
 }) {
+  const showAiButton = useAppStore((s) => s.showAiButton);
+  const setShowAiButton = useAppStore((s) => s.setShowAiButton);
   useLanguage();
   const aiModels = useAppStore((s) => s.aiModels);
   const addAiModel = useAppStore((s) => s.addAiModel);
@@ -2102,6 +2116,9 @@ function ModelsTab({
   return (
     <div className="space-y-4">
       <Card>
+        <Row title={tr("显示右上角 AI 图标")}>
+          <Toggle checked={showAiButton} onChange={setShowAiButton} />
+        </Row>
         <Row title={tr("AI 笔记助手字号")} desc={tr("调整右侧 AI 面板中的文字大小")}>
           <Stepper
             value={aiAssistantFontSize}
@@ -3102,14 +3119,55 @@ function StepButton({
   );
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function LaunchAtLoginSetting() {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void invoke<boolean>("plugin:autostart|is_enabled").then(
+      (value) => { if (active) setEnabled(value); },
+      (reason) => { if (active) setError(String(reason)); },
+    );
+    return () => { active = false; };
+  }, []);
+
+  const change = async (enable: boolean) => {
+    setWorking(true);
+    setError(null);
+    try {
+      await invoke(enable ? "plugin:autostart|enable" : "plugin:autostart|disable");
+      setEnabled(await invoke<boolean>("plugin:autostart|is_enabled"));
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  return (
+    <Row title={tr("登录时自动启动")} desc={error
+      ? tr("无法更改或读取自启动设置：{{0}}", { 0: error })
+      : tr("登录系统时自动打开 Lite Note")}>
+      <Toggle checked={enabled === true} disabled={enabled === null || working} onChange={change} />
+    </Row>
+  );
+}
+
+function Toggle({ checked, onChange, disabled = false }: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
   useLanguage();
   return (
     <button
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="relative inline-flex h-[24px] w-[42px] shrink-0 items-center rounded-full transition-colors"
+      className="relative inline-flex h-[24px] w-[42px] shrink-0 items-center rounded-full transition-colors disabled:opacity-50"
       style={{ background: checked ? "var(--accent)" : "var(--border)" }}
     >
       <span

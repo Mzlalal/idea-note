@@ -118,11 +118,11 @@ pub struct FileNode {
 
 /// Entries excluded from the tree and search. Hidden (dot) files are shown;
 /// only VCS internals and macOS metadata are skipped.
-fn is_excluded(name: &str) -> bool {
+pub(crate) fn is_excluded(name: &str) -> bool {
     matches!(name, ".git" | ".svn" | ".hg" | ".DS_Store")
 }
 
-fn is_markdown(name: &str) -> bool {
+pub(crate) fn is_markdown(name: &str) -> bool {
     let lower = name.to_lowercase();
     lower.ends_with(".md") || lower.ends_with(".markdown")
 }

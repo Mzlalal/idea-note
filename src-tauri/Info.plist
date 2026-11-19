@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- Register Idea Note as an "Open With" handler for any file. public.data is
+  <!-- Register Lite Note as an "Open With" handler for any file. public.data is
        the universal UTI every regular file conforms to, so Finder's Open With
        submenu lists the app for all of them. LSHandlerRank=Alternate means we
        offer to open files without claiming to be the default app for any type.

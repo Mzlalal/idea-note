@@ -1,9 +1,9 @@
-# Idea Note
+# Lite Note
 
 **简体中文** | [English](./README.en.md)
 
 <p align="center">
-  <img src="./src-tauri/icons/icon.png" alt="Idea Note icon" width="96" />
+  <img src="./src-tauri/icons/icon.png" alt="Lite Note icon" width="96" />
 </p>
 
 <p align="center">
@@ -16,7 +16,7 @@
   <a href="https://github.com/Liubsyy/idea-note/releases"><img src="https://img.shields.io/github/downloads/Liubsyy/idea-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
 </p>
 
-**Idea Note** 是一款轻量简洁的笔记应用，集Markdown编辑器、AI 助手、代码运行、内容加密与 Git 同步于一体，支持 Windows、MacOS 和 Linux 平台。
+**Lite Note** 是一款轻量简洁的笔记应用，集Markdown编辑器、AI 助手、代码运行、内容加密与 Git 同步于一体，支持 Windows、MacOS 和 Linux 平台。
 
 
 ![](./doc/assets/sample1.png)
@@ -59,7 +59,7 @@ MacOS 首次安装时如果遇到"无法打开"或"应用已损坏"之类的权�
 1. "系统设置 -> 隐私与安全性"中找到被拦截的应用，点击"仍要打开"
 2. 如果第1种方式不行，可以在终端执行以下命令后重新打开
 ```
-xattr -rd com.apple.quarantine /Applications/Idea\ Note.app
+xattr -rd com.apple.quarantine /Applications/Lite\ Note.app
 ```
 
 ### 笔记管理
@@ -75,6 +75,8 @@ xattr -rd com.apple.quarantine /Applications/Idea\ Note.app
 顶部工具栏可一键插入标题、加粗 / 斜体 / 删除线、列表与任务列表等，以及流程图、时序图、甘特图等各类 Mermaid 图表。粘贴的图片和文件会自动保存为附件（保存目录可在设置中配置）。
 
 
+
+按 Ctrl+N 或点击「新建笔记」即可开始输入。新笔记用本地日期和时间命名，编辑和关闭时自动保存。没有打开工作区时，笔记保存到「文档」下的 Lite Note 文件夹。
 
 ### 运行代码块
 
@@ -127,7 +129,7 @@ xattr -rd com.apple.quarantine /Applications/Idea\ Note.app
 
 接入AI模型可参考： [doc/AI笔记助手接入DeepSeek步骤.md](./doc/AI笔记助手接入DeepSeek步骤.md)。
 
-外部 AI 助手也可通过 [Idea Note Skill](https://github.com/Liubsyy/idea-note/releases/latest/download/idea-note-skill.zip) 获得与内置 AI 助手同等的笔记编写能力，包括高亮块、可交互组件等功能。
+外部 AI 助手也可通过 [Lite Note Skill](https://github.com/Liubsyy/idea-note/releases/latest/download/idea-note-skill.zip) 获得与内置 AI 助手同等的笔记编写能力，包括高亮块、可交互组件等功能。
 
 
 ### 笔记加密
@@ -159,16 +161,6 @@ xattr -rd com.apple.quarantine /Applications/Idea\ Note.app
 
 在侧栏文件右键菜单中选择"导出 PDF"，通过系统 WebView 静默打印直接生成 PDF 文件，自动附带书签大纲，公式、图表、代码高亮与应用内显示一致，无需安装任何额外组件。
 
-### 链接分享
-
-在“设置 → 分享服务”配置服务地址与管理员签发的发布密钥，即可从 Markdown 工具栏发布、手动更新或取消分享。读者凭链接查看与编辑器一致的只读渲染；图片、附件、公式、图表与运行结果快照一并保留，加密内容替换为占位。
-
-Git 工程的分享关联按 `origin` 远程仓库与仓库根目录内的相对路径保存到 `.ideanote/shares.json`，自动纳入 Git 跟踪。将该文件提交并同步后，另一台电脑配置相同分享服务和发布密钥，即可识别原链接并继续更新，工程的绝对路径可以不同。SSH 与 HTTPS 形式的同一远程地址会统一识别；应用内重命名、移动会同步更新关联。旧路径 `.idea-note/shares.json` 会自动迁移到新路径，冲突时优先保留新路径的关联；旧的本机关联在打开分享时自动迁移；未配置受支持远程地址的目录继续使用本机关联。发布密钥只保存在本机。
-
-右键文件夹或工作区空白处可选择“分享文件夹”，递归发布文件与子目录。分享页左侧目录可切换笔记和文件，支持图片、文本预览及其他文件下载。隐藏项与符号链接默认排除，可在发布预览中手动包含并确认。
-
-分享服务支持 Cloudflare Workers + D1 + 私有 Backblaze B2 和 Node/Docker（本地磁盘或 B2），提供密钥、分享、配额、服务开关与备份迁移管理后台。部署和使用说明见 [分享服务文档](./share-service/README.md)。
-
 ### 设置
 
 
@@ -179,11 +171,11 @@ Git 工程的分享关联按 `origin` 远程仓库与仓库根目录内的相对
 
 - **外观**：中英文语言切换、明暗主题与主题色、界面缩放、紧凑排版，支持导入自定义主题 JSON
 - **左侧列表**：各视图的字体大小与字重
-- **编辑器**：字体、字号、字重、行高与标题缩放
-- **快捷键**：自定义编辑器快捷键
+- **编辑器**：字体、字号、字重、行高、标题缩放与时间命名和自动保存
+- **快捷键**：自定义编辑器快捷键，Windows 可双击 Ctrl 激活窗口
 - **图片/附件**：粘贴图片与文件的保存目录（笔记目录 / 工程目录 / 绝对目录）
-- **代码块执行**：可运行的代码块语言、解释器命令与超时、输出上限
-- **AI 笔记助手**：模型服务、API Key、字号与会话历史保留数量
+- **代码块执行**：启用代码块运行（默认关闭）、解释器与输出上限
+- **AI 笔记助手**：标题栏 AI 图标、模型服务、API Key、字号与会话历史保留数量
 - **远程同步**：Git 仓库与同步代理
 - **加密**：按工作区设置加密口令与口令有效期，可立即上锁、修改口令、重新生成恢复码或重置主密钥
 
@@ -260,5 +252,5 @@ npm run tauri build
 
 ### 打包与资源说明
 
-- 应用名称：`Idea Note`
+- 应用名称：`Lite Note`
 - 应用标识：`com.liubs.idea-note`

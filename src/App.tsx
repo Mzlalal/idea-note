@@ -10,7 +10,9 @@ import {
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 
 import { lockNow } from "./lib/crypto/commands";
 import { VAULT_LOCK_REQUEST, useVaultStore } from "./store/useVaultStore";
@@ -61,7 +63,7 @@ import { handleSyncShortcut } from "./lib/syncShortcuts";
 import { getActiveView, getSearchView } from "./lib/codemirror/activeView";
 import { handleEditorDrop } from "./lib/attachments";
 import { setFileDropCursor } from "./lib/codemirror/fileDropCursor";
-import { isWindows } from "./lib/platform";
+import { isMac, isWindows } from "./lib/platform";
 import {
   activateProjectTab,
   currentProjectGroup,
@@ -234,8 +236,13 @@ function App() {
     void (async () => {
       const params = new URLSearchParams(window.location.search);
       const ws = params.get("ws");
+      if (win.label === "main" && isWindows) {
+        const state = useAppStore.getState();
+        void invoke("set_double_ctrl_activation", { enabled: state.doubleCtrlActivation })
+          .catch((error) => state.showToast(tr("无法设置全局快捷键：{{0}}", { 0: String(error) }), "error"));
+      }
       await registerProjectTab(params.get("group"), ws);
-      if (params.get("show") === "1") void activateProjectTab(win.label);
+      if (params.get("show") === "1") await activateProjectTab(win.label);
       if (ws) {
         await useAppStore.getState().openWorkspaceAt(ws);
       } else if (win.label === "main") {
@@ -244,14 +251,52 @@ function App() {
       // Once the workspace (if any) has loaded, open files the app was launched
       // to open via the OS "Open With" menu — as new tabs in that workspace, or
       // in an empty project when none is open. Only the primary window drains.
-      if (win.label !== "main") return;
-      try {
-        for (const p of await takePendingOpenFiles()) await openExternalFile(p);
-      } catch {
-        // No Tauri backend (e.g. running in a plain browser): nothing to drain.
+      if (win.label === "main") {
+        try {
+          for (const p of await takePendingOpenFiles()) await openExternalFile(p);
+        } catch {
+          // No Tauri backend (e.g. running in a plain browser): nothing to drain.
+        }
       }
+      if (await win.isVisible()) useAppStore.getState().openStartupNote();
     })();
   }, [restoreWorkspace]);
+
+  useEffect(() => {
+    const win = getCurrentWindow();
+    const keepInTray = isWindows || isMac;
+    let closing = false;
+    const closeListener = win.onCloseRequested(async (event) => {
+      if (keepInTray) event.preventDefault();
+      if (closing) {
+        event.preventDefault();
+        return;
+      }
+      closing = true;
+      try {
+        if (!(await useAppStore.getState().saveBeforeClose())) {
+          event.preventDefault();
+        } else if (keepInTray) {
+          await win.hide();
+        }
+      } finally {
+        closing = false;
+      }
+    });
+    const quitListener = keepInTray ? getCurrentWebviewWindow().listen<number>("app:prepare-quit", async ({ payload }) => {
+      const saved = await useAppStore.getState().saveBeforeClose();
+      await invoke("background_quit_ready", { attempt: payload, saved });
+    }) : null;
+    if (quitListener) {
+      void Promise.all([closeListener, quitListener])
+        .then(() => invoke("register_background_window"))
+        .catch(console.error);
+    }
+    return () => {
+      void closeListener.then((off) => off());
+      void quitListener?.then((off) => off());
+    };
+  }, []);
 
   // Keep this window's rail entry current: which project it holds, and
   // whether a dialog is waiting on the user (a dot on its tab when hidden).
@@ -289,8 +334,8 @@ function App() {
   // Another tab's rail menu asked this window to close its project.
   useEffect(() => {
     const label = getCurrentWindow().label;
-    const un = listen<{ target: string }>(PROJECT_TAB_CLOSE_EVENT, ({ payload }) => {
-      if (payload.target === label) void useAppStore.getState().closeProjectTab();
+    const un = listen<{ target: string; closeWindow?: boolean }>(PROJECT_TAB_CLOSE_EVENT, ({ payload }) => {
+      if (payload.target === label) void useAppStore.getState().closeProjectTab(payload.closeWindow);
     });
     return () => {
       un.then((fn) => fn());
@@ -586,19 +631,9 @@ function App() {
         if (!modalOpen) closeActiveTab();
         return;
       }
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        !e.altKey &&
-        !e.shiftKey &&
-        e.key.toLowerCase() === "n"
-      ) {
-        e.preventDefault();
-        if (!inOtherInput && !modalOpen) void state.newDraft();
-        return;
-      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        save();
+        void save().catch((error) => state.showToast(tr("无法保存：{{0}}", { 0: String(error) }), "error"));
         return;
       }
       if ((e.metaKey || e.ctrlKey) && !e.altKey && e.shiftKey && e.key.toLowerCase() === "f") {
@@ -607,8 +642,23 @@ function App() {
         return;
       }
     };
+    const onNewNoteKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.isComposing || !(e.ctrlKey || e.metaKey) ||
+          e.altKey || e.shiftKey || e.key.toLowerCase() !== "n") return;
+      const state = useAppStore.getState();
+      if (state.presentationActive || state.loadingWorkspace) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.repeat || state.prompt || state.confirm || state.gitCredentialPrompt ||
+          state.history || state.manualSyncOpen || state.branchManagerOpen) return;
+      void state.newDraft();
+    };
+    window.addEventListener("keydown", onNewNoteKey, true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onNewNoteKey, true);
+      window.removeEventListener("keydown", onKey);
+    };
   }, [save]);
 
   // Files dragged in from the OS (Finder/Explorer). Tauri delivers native

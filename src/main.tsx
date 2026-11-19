@@ -1,4 +1,4 @@
-import "./lib/share/renderRuntime";
+import "./lib/renderRuntime";
 import ReactDOM from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import App from "./App";

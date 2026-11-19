@@ -565,7 +565,7 @@ export async function restoreWorkspaceToCommit(dir: string, hash: string): Promi
 async function ensureIdentity(dir: string): Promise<void> {
   const name = await gitRun(dir, ["config", "user.name"]);
   if (name.code !== 0 || !name.stdout.trim())
-    await gitOk(dir, ["config", "user.name", "Idea Note"]);
+    await gitOk(dir, ["config", "user.name", "Lite Note"]);
   const email = await gitRun(dir, ["config", "user.email"]);
   if (email.code !== 0 || !email.stdout.trim())
     await gitOk(dir, ["config", "user.email", "idea-note@local"]);

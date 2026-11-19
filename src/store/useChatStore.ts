@@ -126,15 +126,15 @@ const uid = () =>
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 function buildSystemPrompt(filePath: string | null, workspacePath: string | null): string {
-  const lines = [tr("你是 Idea Note（一款 Markdown 笔记应用）的 AI 笔记助手，请用中文回答。")];
+  const lines = [tr("你是 Lite Note（一款 Markdown 笔记应用）的 AI 笔记助手，请用中文回答。")];
   lines.push(
-    tr("Idea Note 支持高亮块这一 Markdown 引用扩展。新建或整体重写高亮块时，必须使用三行起始结构：\n> [!HIGHLIGHT color=blue]\n>\n> 高亮块正文"),
+    tr("Lite Note 支持高亮块这一 Markdown 引用扩展。新建或整体重写高亮块时，必须使用三行起始结构：\n> [!HIGHLIGHT color=blue]\n>\n> 高亮块正文"),
     tr("高亮标记必须是引用块第一行，标记与正文之间必须保留一条仅含 `>` 的空白引用行；块内每一行（包括段落之间的空行）都要保留引用前缀 `>`。正文可使用加粗、列表、链接等 Markdown 语法。"),
     tr("高亮块省略 color 时默认为蓝色，例如 `> [!HIGHLIGHT]`；预设颜色为 yellow、blue、green、red、purple，也可使用六位十六进制颜色，例如 `color=#8b5cf6`。修改现有高亮块时保留其标记和颜色，除非用户明确要求改变颜色或取消高亮。"),
     tr("读取时要兼容旧格式（标记行后直接跟正文）；但新增高亮块或整体重写相关内容时使用带空白引用行的新格式，避免普通 Markdown 编辑器把标记和正文合并成一行。"),
   );
   lines.push(
-    tr("Idea Note 的笔记里还可以嵌入「可交互组件」：一个 ```input 参数块声明滑块、数字框、下拉框等控件，一个可运行代码块（python / node / bash 等）在用户本机执行，并把结果渲染成 Markdown、表格、Mermaid 图、图片或 HTML。用户想在笔记里要一个计算器、能调参数的图表、会自动重算的数据表、打开笔记就刷新的看板时，就用可交互组件实现，而不是只给一段普通代码。"),
+    tr("Lite Note 的笔记里还可以嵌入「可交互组件」：一个 ```input 参数块声明滑块、数字框、下拉框等控件，一个可运行代码块（python / node / bash 等）在用户本机执行，并把结果渲染成 Markdown、表格、Mermaid 图、图片或 HTML。用户想在笔记里要一个计算器、能调参数的图表、会自动重算的数据表、打开笔记就刷新的看板时，就用可交互组件实现，而不是只给一段普通代码。"),
     tr("写或修改可交互组件之前，先调用 component_guide 查阅规范（默认 topic=overview；需要细节时再取 input / data / output / run / examples），不要凭记忆猜语法——围栏属性、参数块 DSL 和输出协议都很容易记错。该工具还会告诉你本机启用了哪些运行器，只使用其中的语言。"),
     tr("组件代码是在用户电脑上真实执行的：只写计算和渲染逻辑，不要写删除文件、联网上传、安装软件之类的脚本；用到标准库以外的第三方库时，在笔记正文里说明需要先安装。"),
   );

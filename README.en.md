@@ -1,9 +1,9 @@
-# Idea Note
+# Lite Note
 
 [简体中文](./README.md) | **English**
 
 <p align="center">
-  <img src="./src-tauri/icons/icon.png" alt="Idea Note icon" width="96" />
+  <img src="./src-tauri/icons/icon.png" alt="Lite Note icon" width="96" />
 </p>
 
 <p align="center">
@@ -16,9 +16,9 @@
   <a href="https://github.com/Liubsyy/idea-note/releases"><img src="https://img.shields.io/github/downloads/Liubsyy/idea-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
 </p>
 
-**Idea Note** is a lightweight notes application combining a Markdown editor, an AI assistant, code execution, content encryption, and Git synchronization. Available for Windows, macOS, and Linux.
+**Lite Note** is a lightweight notes application combining a Markdown editor, an AI assistant, code execution, content encryption, and Git synchronization. Available for Windows, macOS, and Linux.
 
-![Idea Note editor](./doc/assets/sample1.png)
+![Lite Note editor](./doc/assets/sample1.png)
 
 ## Features
 
@@ -55,7 +55,7 @@ If macOS reports that the application cannot be opened or is damaged on first la
 2. If that does not work, run the following command in Terminal, then reopen the app:
 
 ```bash
-xattr -rd com.apple.quarantine /Applications/Idea\ Note.app
+xattr -rd com.apple.quarantine /Applications/Lite\ Note.app
 ```
 
 ### Managing notes
@@ -69,6 +69,8 @@ The sidebar provides three views:
 The editor uses live preview: placing the cursor inside a formula, table, Mermaid diagram, or similar block reveals its source for editing. Moving away renders it again. Switch between **Edit**, **Read-only**, and **Source** in the top-right corner of each Markdown editor.
 
 The toolbar inserts headings, bold/italic/strikethrough text, lists, task lists, and Mermaid flowcharts, sequence diagrams, Gantt charts, and more. Pasted images and files are saved as attachments; their destination directories are configurable in Settings.
+
+Press Ctrl+N or click New note to start writing immediately. Lite Note names new notes with the local date and time and saves as you edit or close them. With no workspace open, notes go into the Lite Note folder in Documents.
 
 ### Running code blocks
 
@@ -107,7 +109,7 @@ The assistant can create **interactive components**, too. Ask it to add an inter
 
 Learn more in the [AI assistant implementation guide](./doc/AI笔记助手原理.md) and [DeepSeek setup guide](./doc/AI笔记助手接入DeepSeek步骤.md) (Chinese).
 
-External AI assistants can use the [Idea Note Skill](https://github.com/Liubsyy/idea-note/releases/latest/download/idea-note-skill.zip) to gain the same note-writing capabilities as the built-in AI assistant, including highlight blocks, interactive components, and more.
+External AI assistants can use the [Lite Note Skill](https://github.com/Liubsyy/idea-note/releases/latest/download/idea-note-skill.zip) to gain the same note-writing capabilities as the built-in AI assistant, including highlight blocks, interactive components, and more.
 
 ### Encrypting notes
 
@@ -215,15 +217,5 @@ Run `npm run mock:ai` for a deterministic test service requiring no API key. Con
 
 ### Package information
 
-- Application name: `Idea Note`.
+- Application name: `Lite Note`.
 - Application identifier: `com.liubs.idea-note`.
-
-### Link sharing
-
-Configure a service origin and administrator-issued publishing key in **Settings → Share service**. Use the Markdown toolbar to publish, manually update, or cancel shares. Readers see the same read-only rendering, including attachments, formulas, diagrams, and result snapshots. Encrypted content is replaced before upload.
-
-Git projects store share associations in `.ideanote/shares.json`, keyed by the `origin` repository and paths relative to the Git root. This file is automatically added to Git tracking. Commit and sync it, then configure the same share service and publishing key on another computer to recognize and update the original links, even at a different absolute path. Equivalent SSH and HTTPS remotes share an identity. In-app renames and moves update the associations. The legacy `.idea-note/shares.json` is migrated automatically, with existing bindings at the new path taking precedence. Existing device-local associations migrate when sharing is opened. Directories without a supported remote keep device-local associations. Publishing keys stay on the device.
-
-Right-click a folder or the workspace background to **Share folder** recursively. Readers use the directory sidebar to switch files, preview Markdown, images and text, or download other files. Hidden entries and symbolic links are excluded by default and can be enabled and reviewed before publishing.
-
-The portable service runs on Cloudflare Workers/D1 with private Backblaze B2 storage, or Node/Docker with local disk or B2. It includes an administrator dashboard for keys, quotas, moderation, service switches, and backup migration. See the [deployment guide](./share-service/README.en.md).

@@ -1,4 +1,4 @@
-import "../../lib/share/renderRuntime";
+import "../../lib/renderRuntime";
 import { tr } from "../../i18n/core.ts";
 import { useLanguage } from "../../i18n/react";
 import { useEffect, useRef, useState } from "react";
@@ -309,8 +309,7 @@ export function CodeMirrorEditor({ active = true }: { active?: boolean }) {
     const view = new EditorView({ state, parent: hostRef.current });
     viewRef.current = view;
     if (activeRef.current) setActiveView(view);
-    // Intentionally not focused on open: the whole document stays rendered and
-    // no caret shows until the user clicks into the text.
+    if (isMd && state.doc.length === 0 && !state.readOnly && activeRef.current) view.focus();
 
     // Restore the cursor and scroll position this file had when it was last
     // active. The scroll snapshot re-anchors itself during measure cycles, so
@@ -521,6 +520,7 @@ export function EmptyEditor() {
   useLanguage();
   const openWorkspace = useAppStore((s) => s.openWorkspace);
   const workspacePath = useAppStore((s) => s.workspacePath);
+  const instantNotes = useAppStore((s) => s.instantNotes);
   const requestNewFile = useAppStore((s) => s.requestNewFile);
   const openSettings = useAppStore((s) => s.openSettings);
 
@@ -528,12 +528,12 @@ export function EmptyEditor() {
     <div className="flex h-full flex-col items-center justify-center gap-4 text-center select-none">
       <img
         src={logoUrl}
-        alt="Idea Note"
+        alt="Lite Note"
         className="h-20 w-20 object-contain"
         draggable={false}
       />
       <p className="text-lg font-medium" style={{ color: "var(--text)" }}>
-        Idea Note
+        Lite Note
       </p>
       <p className="text-sm" style={{ color: "var(--text-muted)" }}>
         {workspacePath
@@ -542,12 +542,17 @@ export function EmptyEditor() {
       </p>
       <div className="flex items-center gap-2.5">
         <button
-          onClick={() => (workspacePath ? requestNewFile() : openWorkspace())}
+          onClick={() => (workspacePath || instantNotes ? requestNewFile() : openWorkspace())}
           className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
           style={{ background: "var(--accent)" }}
         >
-          {workspacePath ? tr("新建笔记") : tr("打开文件夹")}
+          {workspacePath || instantNotes ? tr("新建笔记") : tr("打开文件夹")}
         </button>
+        {!workspacePath && instantNotes && (
+          <button onClick={() => void openWorkspace()} className="rounded-lg px-4 py-2 text-sm" style={{ border: "1px solid var(--border)", color: "var(--text)" }}>
+            {tr("打开文件夹")}
+          </button>
+        )}
         {!workspacePath && (
           <button
             onClick={() => void openSettings("sync")}

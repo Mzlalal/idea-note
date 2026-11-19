@@ -299,7 +299,8 @@ export const vaultUnlocked = (): boolean => {
 
 /** Secret drafts do not mark the outer editor dirty, so workspace-wide
  * maintenance must ask this store separately. */
-export const hasPendingSecretEdits = (): boolean =>
-  Object.values(useVaultStore.getState().entries).some(
-    (entry) => entry.draft !== entry.saved,
+export const hasPendingSecretEdits = (filePath?: string): boolean =>
+  Object.entries(useVaultStore.getState().entries).some(
+    ([key, entry]) => (filePath === undefined || key.startsWith(`${filePath} `)) &&
+      entry.draft !== entry.saved,
   );

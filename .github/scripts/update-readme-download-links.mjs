@@ -9,47 +9,47 @@ const DIRECT_DOWNLOAD_RE =
 const REQUIRED_ASSETS = [
   {
     key: 'windows-x64-setup',
-    pattern: /^Idea\.Note_.+_windows_x64_setup\.exe$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_windows_x64_setup\.exe$/,
   },
   {
     key: 'windows-x64-zip',
-    pattern: /^Idea\.Note_.+_windows_x64\.zip$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_windows_x64\.zip$/,
   },
   {
     key: 'windows-x86-setup',
-    pattern: /^Idea\.Note_.+_windows_x86_setup\.exe$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_windows_x86_setup\.exe$/,
   },
   {
     key: 'windows-x86-zip',
-    pattern: /^Idea\.Note_.+_windows_x86\.zip$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_windows_x86\.zip$/,
   },
   {
     key: 'macos-aarch64-dmg',
-    pattern: /^Idea\.Note_.+_macos_aarch64\.dmg$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_macos_aarch64\.dmg$/,
   },
   {
     key: 'macos-aarch64-app',
-    pattern: /^Idea\.Note_.+_macos_aarch64\.app\.tar\.gz$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_macos_aarch64\.app\.tar\.gz$/,
   },
   {
     key: 'macos-x64-dmg',
-    pattern: /^Idea\.Note_.+_macos_x64\.dmg$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_macos_x64\.dmg$/,
   },
   {
     key: 'macos-x64-app',
-    pattern: /^Idea\.Note_.+_macos_x64\.app\.tar\.gz$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_macos_x64\.app\.tar\.gz$/,
   },
   {
     key: 'linux-appimage',
-    pattern: /^Idea\.Note_.+_linux_amd64\.AppImage$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_linux_amd64\.AppImage$/,
   },
   {
     key: 'linux-deb',
-    pattern: /^Idea\.Note_.+_linux_amd64\.deb$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_linux_amd64\.deb$/,
   },
   {
     key: 'linux-rpm',
-    pattern: /^Idea\.Note_.+_linux_x86_64\.rpm$/,
+    pattern: /^(?:Lite|Idea)\.Note_.+_linux_x86_64\.rpm$/,
   },
 ];
 

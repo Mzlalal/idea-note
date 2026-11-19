@@ -1,4 +1,3 @@
-import { remapShareAssociations } from "../lib/share/client";
 import { tr } from "../i18n/core.ts";
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
@@ -16,6 +15,7 @@ import {
 import { isWindows } from "../lib/platform";
 import {
   currentProjectGroup,
+  PROJECT_TAB_CLOSE_EVENT,
   projectTabCount,
   revealOpenProject,
   waitForProjectTab,
@@ -31,9 +31,11 @@ import {
   pickWorkspace,
   pickSavePath,
   createFile,
+  createQuickNote,
   createRawFile,
   createFolder,
   deletePath,
+  recycleEmptyNotes,
   renamePath,
   movePath,
   dirname,
@@ -142,6 +144,9 @@ export type PresentationMode = "fullscreen" | "slides";
 export type AttachmentLocation = "relative" | "project" | "absolute";
 
 interface AppSettings {
+  instantNotes: boolean;
+  showAiButton: boolean;
+  doubleCtrlActivation: boolean;
   /** Id of the selected theme (built-in or custom). Source of truth for which
    *  palette is active; `appearanceMode` is the base mode derived from it. */
   themeId: string;
@@ -382,6 +387,9 @@ export interface CommitMessageConfig {
 }
 
 interface AppState {
+  instantNotes: boolean;
+  showAiButton: boolean;
+  doubleCtrlActivation: boolean;
   workspacePath: string | null;
   tree: FileNode[];
   loadingWorkspace: string | null;
@@ -434,6 +442,7 @@ interface AppState {
   /** Multi-selection set for the tree (⌘/Ctrl-click, ⇧-click). Empty when only
    *  `selectedPath` is selected; otherwise the full highlighted set. */
   selectedPaths: string[];
+  cleaningEmptyNotes: boolean;
   /** When set, the right pane shows this folder's contents listing. */
   folderViewPath: string | null;
   /** Live Markdown/text content of the active editor. */
@@ -538,7 +547,7 @@ interface AppState {
   closeWorkspace: () => Promise<void>;
   /** Close the current project; as one of several project tabs, the tab
    *  (window) goes too once the project is closed. */
-  closeProjectTab: () => Promise<void>;
+  closeProjectTab: (closeWindow?: boolean) => Promise<void>;
   /** Close the workspace in every open window (broadcasts to all mains). */
   closeAllWorkspaces: () => Promise<void>;
   /** Reopen the last workspace from localStorage on app start. */
@@ -582,16 +591,18 @@ interface AppState {
   reorderTabs: (from: number, to: number) => void;
   setContent: (markdown: string) => void;
   setActiveFormats: (formats: ActiveFormats) => void;
-  save: () => Promise<void>;
+  save: (quiet?: boolean) => Promise<void>;
+  saveBeforeClose: () => Promise<boolean>;
   /** Re-read the active file from disk when the window regains focus: reload
    *  silently if the buffer is clean, prompt (keep / reload) if it has unsaved
    *  edits. No-op when nothing changed on disk. */
   checkExternalChange: () => Promise<void>;
   /** Open a new empty "untitled" editor tab with no file on disk yet. */
   newDraft: () => Promise<void>;
+  openStartupNote: () => void;
   /** Flush the active tab before switching away: write a dirty real file, or
    *  stash a draft's live text (no disk write, no prompt). Internal helper. */
-  flushActiveTab: () => Promise<void>;
+  flushActiveTab: () => Promise<boolean>;
   newFile: (dir: string | null, name: string) => Promise<void>;
   newRawFile: (dir: string | null, name: string) => Promise<void>;
   newFolder: (dir: string | null, name: string) => Promise<void>;
@@ -616,13 +627,17 @@ interface AppState {
   removeNow: (path: string) => Promise<void>;
   /** Delete several paths immediately, refreshing and repairing UI state once. */
   removeManyNow: (paths: string[]) => Promise<void>;
+  cleanEmptyNotes: () => Promise<void>;
   remove: (path: string) => Promise<void>;
   /** Ask once before deleting several selected paths. */
   removeMany: (paths: string[]) => Promise<void>;
   // In-app prompt: open with a request, the modal calls onSubmit / closePrompt.
   openPrompt: (req: PromptRequest) => void;
   requestGitCredential: GitCredentialProvider;
-  requestNewFile: (dir?: string) => void;
+  requestNewFile: (dir?: string) => Promise<void>;
+  setInstantNotes: (on: boolean) => void;
+  setShowAiButton: (on: boolean) => void;
+  setDoubleCtrlActivation: (on: boolean) => Promise<void>;
   requestNewRawFile: (dir?: string) => void;
   requestNewFolder: (dir?: string) => void;
   requestRename: (path: string) => void;
@@ -876,6 +891,16 @@ function saveExpandedFolders(
 const DRAFT_PREFIX = "untitled://";
 export const isDraftPath = (p: string | null | undefined): p is string =>
   !!p && p.startsWith(DRAFT_PREFIX);
+const timestampDraftName = (path: string) =>
+  /^untitled:\/\/(\d{8}-\d{6})$/.exec(path)?.[1];
+export const draftTitle = (path: string) => timestampDraftName(path) ?? tr("未命名");
+
+function noteTimestamp(date = new Date()): string {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  const day = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+  const time = `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+  return `${day}-${time}`;
+}
 
 /** Fast, non-cryptographic 64-bit-ish fingerprint used only for dirty-state
  * comparisons. Keeping the length and two independent 32-bit lanes makes an
@@ -1310,6 +1335,9 @@ function readSettings(): AppSettings {
       ? legacyTheme
       : preferredTheme;
   const fallback: AppSettings = {
+    instantNotes: true,
+    showAiButton: true,
+    doubleCtrlActivation: isWindows,
     themeId: fallbackMode,
     customThemes: [],
     appearanceMode: fallbackMode,
@@ -1371,6 +1399,9 @@ function readSettings(): AppSettings {
       themeId,
       customThemes,
       appearanceMode,
+      instantNotes: parsed.instantNotes !== false,
+      showAiButton: parsed.showAiButton !== false,
+      doubleCtrlActivation: isWindows && parsed.doubleCtrlActivation !== false,
       editorFontSize:
         typeof parsed.editorFontSize === "number"
           ? Math.min(22, Math.max(12, parsed.editorFontSize))
@@ -1557,6 +1588,9 @@ function commitSettings(settings: AppSettings) {
 function snapshotSettings(get: () => AppState): AppSettings {
   const s = get();
   return {
+    instantNotes: s.instantNotes,
+    showAiButton: s.showAiButton,
+    doubleCtrlActivation: s.doubleCtrlActivation,
     themeId: s.themeId,
     customThemes: s.customThemes,
     appearanceMode: s.appearanceMode,
@@ -1589,6 +1623,21 @@ applyZoom(initialSettings.uiZoom);
 
 /** Monotonic ticket for runGlobalSearch so stale responses are dropped. */
 let searchSeq = 0;
+let fileOpenRequest = 0;
+let saveInFlight: Promise<void> | undefined;
+let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
+
+function scheduleAutosave(get: () => AppState) {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    if (get().instantNotes && get().isDirty && !get().confirm)
+      void get().save(true).catch((error) => reportAutosaveError(get(), error));
+  }, 400);
+}
+
+function reportAutosaveError(state: AppState, error: unknown) {
+  state.showToast(tr("无法自动保存笔记：{{0}}", { 0: String(error) }), "error");
+}
 /** Rendering more than this in the sidebar makes common queries like "a" lock
  *  the WebView before the Stop button can be clicked. The backend still keeps
  *  searching; we just stop retaining extra rows for the list. */
@@ -1643,7 +1692,7 @@ async function createEditorWindow(query: Record<string, string>, visible: boolea
   const search = new URLSearchParams(query).toString();
   new WebviewWindow(label, {
     url: search ? `index.html?${search}` : "index.html",
-    title: "Idea Note",
+    title: "Lite Note",
     width: 960,
     height: 640,
     minWidth: 640,
@@ -1692,6 +1741,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   draftSeq: 0,
   selectedPath: null,
   selectedPaths: [],
+  cleaningEmptyNotes: false,
   folderViewPath: null,
   content: "",
   savedContentHash: null,
@@ -1712,6 +1762,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   editorFontWeight: initialSettings.editorFontWeight,
   editorHeadingScale: initialSettings.editorHeadingScale,
   editorMaxTabs: initialSettings.editorMaxTabs,
+  instantNotes: initialSettings.instantNotes,
+  showAiButton: initialSettings.showAiButton,
+  doubleCtrlActivation: initialSettings.doubleCtrlActivation,
   aiAssistantFontSize: initialSettings.aiAssistantFontSize,
   aiSessionHistoryLimit: initialSettings.aiSessionHistoryLimit,
   vaultTtlMinutes: initialSettings.vaultTtlMinutes,
@@ -1775,7 +1828,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const task = workspaceQueue.catch(() => {}).then(async () => {
       if (request !== workspaceRequest) return;
       try {
-        await get().flushActiveTab();
+        if (!(await get().flushActiveTab())) return;
         if (request !== workspaceRequest) return;
         const nextTree = new DirectoryTree(path, listDirectory);
         let tree: FileNode[];
@@ -1856,11 +1909,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     workspaceController?.abort();
     workspaceController = null;
     set({ loadingWorkspace: null });
+    if (get().instantNotes && !(await get().saveBeforeClose())) return;
     if (!get().workspacePath) return;
 
     // Closing drops every open tab; confirm before discarding unsaved changes
     // (only the active tab can be dirty), then re-run once it's resolved.
-    if (get().isDirty) {
+    if (!get().instantNotes && get().isDirty) {
       confirmUnsavedClose(get, async (saveFirst) => {
         if (saveFirst) {
           await get().save();
@@ -1912,10 +1966,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  closeProjectTab: async () => {
+  closeProjectTab: async (closeWindow = false) => {
     // Same unsaved-changes flow as closeWorkspace, so the window only goes
     // once the project is really closed (a cancelled prompt keeps both).
-    if (get().isDirty) {
+    if (get().instantNotes) {
+      if (!(await get().saveBeforeClose())) return;
+    } else if (get().isDirty) {
       confirmUnsavedClose(get, async (saveFirst) => {
         if (saveFirst) {
           await get().save();
@@ -1923,13 +1979,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         } else {
           set({ isDirty: false });
         }
-        await get().closeProjectTab();
+        await get().closeProjectTab(closeWindow);
       });
       return;
     }
     await get().closeWorkspace();
-    if (get().workspacePath || projectTabCount() < 2) return;
-    await getCurrentWindow().close();
+    if (get().workspacePath || (!closeWindow && projectTabCount() < 2)) return;
+    await getCurrentWindow().destroy();
   },
 
   closeAllWorkspaces: async () => {
@@ -1941,7 +1997,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     await Promise.all(
       windows
         .filter((w) => w.label !== current)
-        .map((w) => w.close().catch(() => {})),
+        .map((w) => (w.label === SETTINGS_WINDOW
+          ? w.close()
+          : emit(PROJECT_TAB_CLOSE_EVENT, { target: w.label, closeWindow: true })).catch(() => {})),
     );
     await get().closeWorkspace();
   },
@@ -2273,8 +2331,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   openFile: async (path) => {
     const request = workspaceRequest;
-    await get().flushActiveTab();
-    if (request !== workspaceRequest) return;
+    const fileRequest = ++fileOpenRequest;
+    const stale = () => request !== workspaceRequest || fileRequest !== fileOpenRequest;
+    if (!(await get().flushActiveTab()) || stale()) return;
     // Opening collapses any multi-selection back to this single item.
     set({ selectedPaths: [] });
     // Drafts have no disk file: restore their stashed text instead of reading.
@@ -2314,7 +2373,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       content = await readFile(path);
     } catch {
-      if (request !== workspaceRequest) return;
+      if (stale()) return;
       // Other non-text files (PDFs, binaries, …) can't be read as UTF-8.
       get().showToast(
         tr("无法以文本方式打开「{{0}}」（可能是二进制文件）。", { 0: basename(path) }),
@@ -2322,7 +2381,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       );
       return;
     }
-    if (request !== workspaceRequest) return;
+    if (stale()) return;
+    if (get().instantNotes && (get().isDirty || saveInFlight)) {
+      if (!(await get().saveBeforeClose()) || stale()) return;
+    }
     set((s) => ({
       activeFilePath: path,
       openTabs: addTab(s.openTabs, path, get().editorMaxTabs, s.activeFilePath),
@@ -2361,8 +2423,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
     // Otherwise show the folder's contents in the right pane.
-    await get().flushActiveTab();
-    if (directoryTree !== current) return;
+    if (!(await get().flushActiveTab()) || directoryTree !== current) return;
     set((s) => ({
       selectedPath: node.path,
       folderViewPath: node.path,
@@ -2382,7 +2443,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
     // No active file (e.g. a folder listing is showing): just clear the pane.
-    await get().flushActiveTab();
+    if (!(await get().flushActiveTab())) return;
     set((s) => ({
       activeFilePath: null,
       selectedPath: null,
@@ -2396,6 +2457,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   closeTab: async (path) => {
+    if (get().instantNotes && get().activeFilePath === path) {
+      if (!(await get().saveBeforeClose())) return;
+      if (timestampDraftName(path)) path = get().activeFilePath ?? path;
+    }
     const { openTabs, activeFilePath, isDirty } = get();
     if (!openTabs.includes(path)) return;
 
@@ -2469,6 +2534,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   closeOtherTabs: async (path) => {
+    if (get().instantNotes && get().activeFilePath !== path && !(await get().saveBeforeClose())) return;
     const { openTabs, activeFilePath, isDirty } = get();
     if (!openTabs.includes(path)) return;
     const closed = openTabs.filter((p) => p !== path);
@@ -2513,6 +2579,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   closeAllTabs: async () => {
+    if (get().instantNotes && !(await get().saveBeforeClose())) return;
     const { openTabs, isDirty } = get();
     if (openTabs.length === 0) return;
 
@@ -2570,14 +2637,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       content: markdown,
       isDirty: savedContentHash === null || hashContent(markdown) !== savedContentHash,
     });
+    if (get().instantNotes) scheduleAutosave(get);
   },
 
   setActiveFormats: (formats) => set({ activeFormats: formats }),
 
   checkExternalChange: async () => {
-    const { activeFilePath, isDirty, diskStat, confirm } = get();
+    const { activeFilePath, diskStat, confirm, saving } = get();
     // Don't stack on top of an open dialog (e.g. a prior conflict prompt).
-    if (confirm) return;
+    if (confirm || saving) return;
     if (
       !activeFilePath ||
       isDraftPath(activeFilePath) ||
@@ -2589,16 +2657,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     // Cheap stat only — no content read. Same mtime + size ⇒ treat as unchanged.
     const now = await fileStat(activeFilePath);
-    if (!now) return; // removed/unreadable — leave as-is; saving will surface it
+    if (!now || get().activeFilePath !== activeFilePath || get().saving || get().diskStat !== diskStat) return;
     if (now.mtime === diskStat.mtime && now.size === diskStat.size) return;
 
     const path = activeFilePath;
-    if (!isDirty) {
+    if (!get().isDirty) {
       // Clean buffer: adopt the external version silently. This is the only
       // place we read the file, and only because a change was detected.
       try {
         const disk = await readFile(path);
-        if (get().activeFilePath !== path) return; // switched files mid-read
+        if (get().activeFilePath !== path || get().isDirty || get().saving || get().diskStat !== diskStat) return;
         set((s) => ({
           content: disk,
           savedContentHash: hashContent(disk),
@@ -2623,7 +2691,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         // change won't prompt again. A later save overwrites the disk version.
         // The external content was deliberately not read, so its hash is
         // unknown. Keep the editor dirty until the user explicitly saves.
-        onConfirm: () => set({ diskStat: now, savedContentHash: null }),
+        onConfirm: () => {
+          set({ diskStat: now, savedContentHash: null });
+          if (get().instantNotes) scheduleAutosave(get);
+        },
         altLabel: tr("重新加载"),
         onAlt: async () => {
           const disk = await readFile(path);
@@ -2640,73 +2711,117 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  save: async () => {
-    // Encrypt any edits still sitting in an unlocked block's nested editor
-    // before reading `content`: the main buffer holds ciphertext, so an
-    // un-flushed block would be saved with its previous contents.
-    const flushed = await flushSecretEdits(get().activeFilePath ?? "", undefined, {
-      prompt: true,
-    });
-    if (flushed.blocked > 0)
-      get().showToast(
-        tr("有 {{0}} 个加密块未能保存：需要先解锁", { 0: flushed.blocked }),
-        "error",
-      );
-    const { activeFilePath, content, isDirty } = get();
-    // First save of an untitled draft: let the user pick a directory + filename
-    // via the native "save as" dialog, then swap the sentinel tab for the path.
-    if (isDraftPath(activeFilePath)) {
-      const draftPath = activeFilePath;
-      const ws = get().workspacePath;
-      const chosen = await pickSavePath(ws ? tr("{{0}}/未命名.md", { 0: ws }) : tr("未命名.md"));
-      if (!chosen) return; // cancelled
-      const savedContent = get().content;
-      const savedContentHash = hashContent(savedContent);
+  save: (quiet = false) => {
+    if (saveInFlight) return saveInFlight;
+    const path = get().activeFilePath;
+    const task = async () => {
+      // Encrypt any edits still sitting in an unlocked block's nested editor
+      // before reading `content`: the main buffer holds ciphertext, so an
+      // un-flushed block would be saved with its previous contents.
+      const flushed = await flushSecretEdits(path ?? "", undefined, {
+        prompt: !quiet,
+      });
+      if (quiet && flushed.blocked > 0) throw new Error(tr("加密块尚未保存"));
+      if (flushed.blocked > 0)
+        get().showToast(
+          tr("有 {{0}} 个加密块未能保存：需要先解锁", { 0: flushed.blocked }),
+          "error",
+        );
+      const { activeFilePath, content, isDirty } = get();
+      if (activeFilePath !== path) return;
+      if (isDraftPath(activeFilePath)) {
+        const draftPath = activeFilePath;
+        const ws = get().workspacePath;
+        const stamp = timestampDraftName(draftPath) ?? (get().instantNotes ? noteTimestamp() : null);
+        if (stamp && !isDirty) return;
+        if (!stamp && quiet) return;
+        const chosenPath = stamp ? null : await pickSavePath(ws ? tr("{{0}}/未命名.md", { 0: ws }) : tr("未命名.md"));
+        if ((!stamp && !chosenPath) || get().activeFilePath !== draftPath) return;
+        const savedContent = get().content;
+        const savedContentHash = hashContent(savedContent);
+        set({ saving: true });
+        try {
+          const chosen = stamp ? await createQuickNote(ws, stamp, savedContent) : chosenPath!;
+          if (!stamp) {
+            await writeFile(chosen, savedContent);
+            notifyPathsCreated([chosen]);
+          }
+          set((s) => {
+            const { [draftPath]: _drop, ...rest } = s.draftContents;
+            return {
+              draftContents: rest,
+              openTabs: s.openTabs.map((p) => (p === draftPath ? chosen : p)),
+              activeFilePath: s.activeFilePath === draftPath ? chosen : s.activeFilePath,
+              selectedPath: chosen,
+              savedContentHash,
+              isDirty: hashContent(s.content) !== savedContentHash,
+            };
+          });
+          await captureDiskStat(chosen);
+          void get().refreshTree().catch(console.warn);
+        } finally {
+          set({ saving: false });
+        }
+        return;
+      }
+      if (!activeFilePath || !isDirty) return;
       set({ saving: true });
       try {
-        await writeFile(chosen, savedContent);
-        notifyPathsCreated([chosen]);
-        set((s) => {
-          const { [draftPath]: _drop, ...rest } = s.draftContents;
-          return {
-            draftContents: rest,
-            openTabs: s.openTabs.map((p) => (p === draftPath ? chosen : p)),
-            activeFilePath: s.activeFilePath === draftPath ? chosen : s.activeFilePath,
-            selectedPath: chosen,
-            savedContentHash,
-            isDirty: hashContent(s.content) !== savedContentHash,
-          };
-        });
-        void captureDiskStat(chosen);
-        await get().refreshTree();
+        await writeFile(activeFilePath, content);
+        const savedContentHash = hashContent(content);
+        set((s) =>
+          s.activeFilePath === activeFilePath
+            ? {
+                savedContentHash,
+                isDirty: hashContent(s.content) !== savedContentHash,
+              }
+            : {},
+        );
+        await captureDiskStat(activeFilePath);
+        if (!quiet || get().sidebarMode === "notes") void get().refreshTree().catch(console.warn);
       } finally {
         set({ saving: false });
       }
-      return;
-    }
-    if (!activeFilePath || !isDirty) return;
-    set({ saving: true });
+    };
+    saveInFlight = task().then(() => {
+      if (quiet && get().instantNotes && get().isDirty) scheduleAutosave(get);
+    }).finally(() => { saveInFlight = undefined; });
+    return saveInFlight;
+  },
+
+  saveBeforeClose: async () => {
+    clearTimeout(autosaveTimer);
     try {
-      await writeFile(activeFilePath, content);
-      const savedContentHash = hashContent(content);
-      set((s) =>
-        s.activeFilePath === activeFilePath
-          ? {
-              savedContentHash,
-              isDirty: hashContent(s.content) !== savedContentHash,
-            }
-          : {},
-      );
-      void captureDiskStat(activeFilePath);
-      // Keep the notes-mode excerpt/mtime of this file fresh in the sidebar.
-      void get().refreshTree();
-    } finally {
-      set({ saving: false });
+      await saveInFlight;
+      do {
+        const path = get().activeFilePath;
+        if (!path || (!get().instantNotes && isDraftPath(path) && !timestampDraftName(path))) return true;
+        if (get().isDirty || hasPendingSecretEdits(path)) await get().save(true);
+      } while (get().isDirty);
+      return true;
+    } catch (error) {
+      reportAutosaveError(get(), error);
+      return false;
     }
   },
 
+  openStartupNote: () => {
+    const state = get();
+    if (!state.instantNotes || state.activeFilePath || state.folderViewPath || state.loadingWorkspace) return;
+    const path = `${DRAFT_PREFIX}${noteTimestamp()}`;
+    set({
+      openTabs: [path],
+      activeFilePath: path,
+      content: "",
+      savedContentHash: hashContent(""),
+      diskStat: null,
+      docKey: state.docKey + 1,
+    });
+  },
+
   newDraft: async () => {
-    await get().flushActiveTab();
+    if (get().instantNotes) return get().requestNewFile();
+    if (!(await get().flushActiveTab())) return;
     const seq = get().draftSeq + 1;
     const path = `${DRAFT_PREFIX}${seq}`;
     set((s) => {
@@ -2733,6 +2848,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   flushActiveTab: async () => {
+    if (get().instantNotes || timestampDraftName(get().activeFilePath ?? "")) return get().saveBeforeClose();
+    await saveInFlight;
     // Edits inside an unlocked block live in useVaultStore, not in the
     // document, so a note can have unsaved secret changes while `isDirty` is
     // still false. Encrypt them first — otherwise switching tabs drops them.
@@ -2752,9 +2869,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         savedContentHash: hashContent(content),
         isDirty: false,
       }));
-      return;
+      return true;
     }
     if (activeFilePath && isDirty) await get().save();
+    return true;
   },
 
   newFile: async (dir, name) => {
@@ -2790,7 +2908,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     const current = basename(path);
     if (!trimmed || trimmed === current) return;
     const newPath = await renamePath(path, trimmed);
-    await remapShareAssociations(path, newPath).catch(error => get().showToast(String(error), "error"));
     const { activeFilePath, selectedPath, folderViewPath, refreshTree } = get();
     await refreshTree();
     // Remap any open tab whose path is (or is nested under) the renamed node.
@@ -2826,7 +2943,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         failed.push(basename(p));
       }
     }
-    for (const [from, to] of moved) await remapShareAssociations(from, to).catch(error => get().showToast(String(error), "error"));
     await get().refreshTree();
 
     // Each moved node keeps its name, so only its parent prefix changes.
@@ -2892,6 +3008,59 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   clearSelection: () => set({ selectedPaths: [] }),
+
+  cleanEmptyNotes: async () => {
+    const state = get();
+    const workspace = state.workspacePath;
+    if (!workspace || state.cleaningEmptyNotes || state.vaultRotationBusy || state.branchTaskBusy || state.syncState === "syncing") return;
+    set({ cleaningEmptyNotes: true });
+    try {
+      const path = state.activeFilePath;
+      const protectedPath = path && !isDraftPath(path) &&
+        (state.isDirty || state.saving || state.content.trim() || hasPendingSecretEdits(path))
+        ? path : null;
+      const { removed, failed } = await recycleEmptyNotes(workspace, protectedPath);
+      if (get().workspacePath !== workspace) return;
+
+      if (removed.length > 0) {
+        const pathKey = (path: string) => {
+          const relative = relativePathWithinWorkspace(workspace, path);
+          return isWindows && relative !== null ? relative.toLowerCase() : relative;
+        };
+        const recycled = new Set(removed.map(pathKey));
+        recycled.delete(null);
+        const wasRecycled = (path: string | null) => !!path && recycled.has(pathKey(path));
+        const current = get();
+        // Keep an editor that acquired changes while the scan was running.
+        const active = current.activeFilePath;
+        const closeActive = active && wasRecycled(active) &&
+          !current.isDirty && !current.saving && !current.content.trim() && !hasPendingSecretEdits(active);
+        const closed = current.openTabs.filter((tab) => tab !== active && wasRecycled(tab));
+        for (const tab of closed) {
+          useRunStore.getState().clearFile(tab);
+          useInputStore.getState().clearFile(tab);
+        }
+        set({
+          openTabs: current.openTabs.filter((tab) => tab === active || !wasRecycled(tab)),
+          selectedPaths: current.selectedPaths.filter((selection) => !wasRecycled(selection)),
+          selectedPath: wasRecycled(current.selectedPath) ? null : current.selectedPath,
+        });
+        if (closeActive) await get().closeTab(active);
+        await get().refreshTree();
+      }
+      if (failed > 0) {
+        get().showToast(tr("已清理 {{0}} 篇空白笔记，{{1}} 个项目无法处理", { 0: removed.length, 1: failed }), "error");
+      } else {
+        get().showToast(removed.length
+          ? tr("已将 {{0}} 篇空白笔记移到回收站", { 0: removed.length })
+          : tr("没有可清理的空白笔记"));
+      }
+    } catch (error) {
+      get().showToast(tr("清理空白笔记失败：{{0}}", { 0: String(error) }), "error");
+    } finally {
+      set({ cleaningEmptyNotes: false });
+    }
+  },
 
   removeNow: async (path) => get().removeManyNow([path]),
 
@@ -3024,8 +3193,23 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     }),
 
-  requestNewFile: (dir) => {
+  requestNewFile: async (dir) => {
     const target = dir ?? get().workspacePath;
+    if (get().instantNotes) {
+      const request = workspaceRequest;
+      const stamp = noteTimestamp();
+      try {
+        if (!(await get().saveBeforeClose()) || request !== workspaceRequest) return;
+        const created = await createQuickNote(target, stamp, "");
+        if (request !== workspaceRequest) return;
+        if (get().mdViewMode === "readonly") set({ mdViewMode: "live" });
+        void get().refreshTree().catch(console.warn);
+        await get().openFile(created);
+      } catch (error) {
+        get().showToast(tr("无法新建笔记：{{0}}", { 0: String(error) }), "error");
+      }
+      return;
+    }
     if (!target) return;
     set({
       prompt: {
@@ -3425,6 +3609,27 @@ export const useAppStore = create<AppState>((set, get) => ({
   setBottomPanelHeight: (height) =>
     set({ bottomPanelHeight: Math.min(window.innerHeight - 120, Math.max(120, height)) }),
 
+  setInstantNotes: (instantNotes) => {
+    commitSettings({ ...snapshotSettings(get), instantNotes });
+    set({ instantNotes });
+    if (instantNotes && get().isDirty) scheduleAutosave(get);
+  },
+
+  setShowAiButton: (showAiButton) => {
+    commitSettings({ ...snapshotSettings(get), showAiButton });
+    set({ showAiButton });
+  },
+
+  setDoubleCtrlActivation: async (doubleCtrlActivation) => {
+    try {
+      await invoke("set_double_ctrl_activation", { enabled: doubleCtrlActivation });
+      commitSettings({ ...snapshotSettings(get), doubleCtrlActivation });
+      set({ doubleCtrlActivation });
+    } catch (error) {
+      get().showToast(tr("无法设置全局快捷键：{{0}}", { 0: String(error) }), "error");
+    }
+  },
+
   toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
 
   toggleRunPanel: () => set((s) => ({ runPanelOpen: !s.runPanelOpen })),
@@ -3546,7 +3751,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     set({ branchTaskBusy: true });
     try {
-      await get().flushActiveTab();
+      if ((await get().flushActiveTab()) === false) return;
       if (get().workspacePath !== workspacePath) return;
       const changedFiles = await task(workspacePath);
       if (get().workspacePath !== workspacePath) return;
@@ -3620,7 +3825,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ syncState: "syncing", lastSyncMessage: null });
     broadcast();
     try {
-      await get().flushActiveTab();
+      if ((await get().flushActiveTab()) === false) throw new Error(tr("笔记尚未保存"));
       const result = await task(workspacePath);
 
       // The merge may have rewritten files on disk: refresh the tree, and
@@ -3885,6 +4090,9 @@ listen<AppSettings>(SETTINGS_EVENT, ({ payload }) => {
     customThemes,
     openTabs: trimTabs(s.openTabs, payload.editorMaxTabs, s.activeFilePath),
     appearanceMode: mode,
+    instantNotes: payload.instantNotes,
+    showAiButton: payload.showAiButton,
+    doubleCtrlActivation: payload.doubleCtrlActivation,
     editorFontSize: payload.editorFontSize,
     editorLineHeight: payload.editorLineHeight,
     editorLineNumbers: payload.editorLineNumbers,
@@ -3907,6 +4115,8 @@ listen<AppSettings>(SETTINGS_EVENT, ({ payload }) => {
     sidebarFontWeight: payload.sidebarFontWeight,
     editorKeybindings: payload.editorKeybindings ?? {},
   }));
+  if (payload.instantNotes && useAppStore.getState().isDirty)
+    scheduleAutosave(useAppStore.getState);
 }).catch(() => {});
 
 // Rust starts every launch on its built-in default; hand it the remembered

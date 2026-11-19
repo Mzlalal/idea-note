@@ -108,7 +108,7 @@ export const TOOL_DEFS: ToolDef[] = [
   },
   {
     name: "component_guide",
-    get description() { return tr("查阅 Idea Note 可交互组件（```input 参数块 + 可运行代码块）的写法规范，并获知本机启用了哪些运行器。用户要在笔记里做计算器、图表、看板、数据表格、能调参数自动重算的小工具时，先调用它再动手写；不确定语法细节（参数控件、表格/文件绑定、输出格式、自动运行）时也调用它。不要凭记忆猜语法。"); },
+    get description() { return tr("查阅 Lite Note 可交互组件（```input 参数块 + 可运行代码块）的写法规范，并获知本机启用了哪些运行器。用户要在笔记里做计算器、图表、看板、数据表格、能调参数自动重算的小工具时，先调用它再动手写；不确定语法细节（参数控件、表格/文件绑定、输出格式、自动运行）时也调用它。不要凭记忆猜语法。"); },
     parameters: {
       type: "object",
       properties: {

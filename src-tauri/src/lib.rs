@@ -1,14 +1,20 @@
-// Idea Note - Rust backend commands for the file workspace.
+// Lite Note - Rust backend commands for the file workspace.
 // All file I/O goes through these commands so behavior is identical across
 // desktop and (future) mobile targets. Each functional area lives in its own
 // module; this file only declares them and assembles the Tauri builder.
 
 mod ai_models;
 mod app_data;
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+mod background;
 mod clipboard;
 mod code_run;
 mod crypto;
+#[cfg(target_os = "windows")]
+mod double_ctrl;
 mod encoding;
+#[cfg(desktop)]
+mod empty_notes;
 mod files;
 mod fix_path;
 mod git;
@@ -20,8 +26,6 @@ mod print;
 mod proc;
 mod project_tabs;
 mod search;
-mod share_associations;
-mod sharing;
 mod terminal;
 mod tree;
 
@@ -51,6 +55,13 @@ pub fn run() {
     }
 
     let builder = tauri::Builder::default();
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    let builder = builder.setup(|app| {
+        background::install(app.handle())?;
+        #[cfg(target_os = "windows")]
+        double_ctrl::install(app.handle());
+        Ok(())
+    });
 
     // The single-instance plugin must be registered first. When a second
     // "Open With" launch happens while the app runs (Windows/Linux spawn a new
@@ -60,6 +71,8 @@ pub fn run() {
         use tauri::{Emitter, Manager};
         let paths = open_with::file_paths_from_args(&argv, &cwd);
         if paths.is_empty() {
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            background::show_last_window(app);
             return;
         }
         if app.get_webview_window("main").is_some() {
@@ -72,6 +85,14 @@ pub fn run() {
             let _ = app.emit("open-files", paths);
         }
     }));
+
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    let builder = builder
+        .manage(background::Background::default())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ));
 
     let builder = builder
         .plugin(tauri_plugin_http::init())
@@ -128,9 +149,15 @@ pub fn run() {
             std::thread::spawn(move || responder.respond(state.respond(&owner, request)));
         })
         .on_window_event(|window, event| {
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                background::on_close_requested(window, api);
+            }
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 use tauri::Manager;
                 window.state::<html_preview::PreviewState>().remove_owner(window.label());
+                #[cfg(any(target_os = "windows", target_os = "macos"))]
+                background::on_window_destroyed(window);
             }
             project_tabs::on_window_event(window, event);
         })
@@ -142,6 +169,14 @@ pub fn run() {
         .manage(vault)
         .manage(pending)
         .invoke_handler(tauri::generate_handler![
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            background::register_background_window,
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            background::background_quit_ready,
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            background::set_tray_labels,
+            #[cfg(target_os = "windows")]
+            double_ctrl::set_double_ctrl_activation,
             html_preview::create_preview_session,
             html_preview::close_preview_session,
             open_with::take_pending_open_files,
@@ -166,13 +201,6 @@ pub fn run() {
             search::global_search,
             search::global_search_stream,
             search::stop_global_search,
-            sharing::share_config_load,
-            sharing::share_config_save,
-            sharing::share_association_set,
-            sharing::share_associations_remap,
-            sharing::share_resource_stat,
-            sharing::share_resource_read,
-            sharing::share_folder_scan,
             files::read_file,
             files::file_stat,
             files::is_dir,
@@ -180,11 +208,14 @@ pub fn run() {
             files::write_binary_file,
             files::save_file_to_dir,
             files::create_file,
+            files::create_quick_note,
             files::create_raw_file,
             files::create_folder,
             files::rename,
             files::move_path,
             files::delete,
+            #[cfg(desktop)]
+            empty_notes::recycle_empty_notes,
             files::show_file_info,
             clipboard::copy_files_to_clipboard,
             clipboard::copy_image_to_clipboard,
@@ -234,6 +265,12 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::ExitRequested { code: None, ref api, .. } = event {
+                api.prevent_exit();
+                background::request_quit(app_handle);
+                return;
+            }
             // Quitting tears windows down one by one; keep the saved project
             // tabs as they were instead of shrinking them with each close.
             if matches!(event, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit) {
@@ -243,7 +280,7 @@ pub fn run() {
             // Dock click while every project window is hidden or closed.
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Reopen { has_visible_windows: false, .. } = event {
-                project_tabs::reopen(app_handle);
+                background::show_last_window(app_handle);
             }
             // macOS "Open With" / file-association launches arrive as Apple
             // "Opened" events. Forward the file paths to the frontend; if no

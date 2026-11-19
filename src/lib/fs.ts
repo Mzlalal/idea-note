@@ -130,6 +130,9 @@ export const saveFileToDir = (src: string, dir: string, name: string) =>
 export const createFile = (dir: string, name: string) =>
   reportCreated(invoke<string>("create_file", { dir, name }));
 
+export const createQuickNote = (dir: string | null, name: string, content: string) =>
+  reportCreated(invoke<string>("create_quick_note", { dir, name, content }));
+
 /** Create a file with the exact given name (extension required, no `.md` defaulting). */
 export const createRawFile = (dir: string, name: string) =>
   reportCreated(invoke<string>("create_raw_file", { dir, name }));
@@ -145,6 +148,9 @@ export const movePath = (path: string, destDir: string) =>
   reportCreated(invoke<string>("move_path", { path, destDir }));
 
 export const deletePath = (path: string) => invoke<void>("delete", { path });
+
+export const recycleEmptyNotes = (workspace: string, protectedPath: string | null) =>
+  invoke<{ removed: string[]; failed: number }>("recycle_empty_notes", { workspace, protectedPath });
 
 /** Open the OS file-info window (Finder "Get Info"). */
 export const showFileInfo = (path: string) =>

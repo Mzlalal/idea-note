@@ -12,8 +12,8 @@ import {
   TableOfContents,
   RefreshCw,
   Search,
-  Share2,
   FilePlus2,
+  Trash2,
   FolderPlus,
   ChevronsDownUp,
   Ellipsis,
@@ -52,7 +52,6 @@ import {
   exportCurrentNoteAsPdf,
   printCurrentNote,
 } from "../../lib/print/printNote";
-import { ShareDialog } from "../ShareDialog";
 import { FileTree } from "./FileTree";
 import { NotesTree } from "./NotesTree";
 import { OutlinePanel } from "./OutlinePanel";
@@ -102,14 +101,13 @@ function estimateContextMenuHeight(
       1 + // 显示简介
       (gitRepo && (node.is_dir || !isImageFile(node.path)) ? 1 : 0) +
       1 + // 重命名
-      1 + // 删除
-      (node.is_dir || isMarkdownFile(node.path) ? 1 : 0) // 分享文件夹 / 分享笔记
+      1 // 删除
     : 4 +
       1 + // 粘贴
       1 + // 打开所在目录
       1 + // 显示简介
       (gitRepo && workspacePath ? 1 : 0) +
-      2; // 刷新 / 分享文件夹
+      1; // 刷新
   return rows * MENU_ROW_HEIGHT + MENU_VERTICAL_PADDING;
 }
 
@@ -151,7 +149,12 @@ export function Sidebar() {
   const setSelection = useAppStore((s) => s.setSelection);
   const clearSelection = useAppStore((s) => s.clearSelection);
   const requestNewFile = useAppStore((s) => s.requestNewFile);
+  const instantNotes = useAppStore((s) => s.instantNotes);
   const requestNewRawFile = useAppStore((s) => s.requestNewRawFile);
+  const cleanEmptyNotes = useAppStore((s) => s.cleanEmptyNotes);
+  const cleanupDisabled = useAppStore((s) =>
+    s.cleaningEmptyNotes || s.vaultRotationBusy || s.branchTaskBusy || s.syncState === "syncing",
+  );
   const newRawFile = useAppStore((s) => s.newRawFile);
   const openFile = useAppStore((s) => s.openFile);
   const showToast = useAppStore((s) => s.showToast);
@@ -171,8 +174,6 @@ export function Sidebar() {
   const openHistoryAt = useAppStore((s) => s.openHistoryAt);
 
   const [menu, setMenu] = useState<MenuState | null>(null);
-  const [sharingFolder,setSharingFolder]=useState<string|null>(null);
-  const [sharingNote,setSharingNote]=useState(false);
   const [wsMenuOpen, setWsMenuOpen] = useState(false);
   const [newMenuOpen, setNewMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
@@ -585,10 +586,15 @@ export function Sidebar() {
             )}
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
+            {(workspacePath || instantNotes) && (
+              <IconButton title={tr("新建笔记")} compact onClick={() => requestNewFile(pasteTarget() ?? undefined)}>
+                <FilePlus2 size={15} />
+              </IconButton>
+            )}
             {workspacePath && (
               <div className="relative">
                 <IconMenuButton
-                  title={tr("新建")}
+                  title={tr("新建文件或文件夹")}
                   open={newMenuOpen}
                   onClick={() => {
                     setWsMenuOpen(false);
@@ -596,12 +602,12 @@ export function Sidebar() {
                     setNewMenuOpen((v) => !v);
                   }}
                 >
-                  <FilePlus2 size={15} />
+                  <ChevronDown size={13} />
                 </IconMenuButton>
                 {newMenuOpen && (
                   <div
                     data-menu-panel="true"
-                    className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg py-1 text-sm shadow-lg"
+                    className="absolute right-0 top-full z-50 mt-1 min-w-40 whitespace-nowrap rounded-lg py-1 text-sm shadow-lg"
                     style={{
                       background: "var(--bg-elev)",
                       border: "1px solid var(--border)",
@@ -626,6 +632,17 @@ export function Sidebar() {
                     >
                       <span className="flex items-center gap-2">
                         <FolderPlus size={14} /> {" "}{tr("新建文件夹")}</span>
+                    </MenuItem>
+                    <MenuItem
+                      disabled={cleanupDisabled}
+                      onClick={() => {
+                        setNewMenuOpen(false);
+                        void cleanEmptyNotes();
+                      }}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Trash2 size={14} /> {tr("清理空白笔记")}
+                      </span>
                     </MenuItem>
                   </div>
                 )}
@@ -808,7 +825,7 @@ export function Sidebar() {
             className="truncate text-xs font-medium"
             style={{ color: "var(--text-soft)", letterSpacing: "0.02em" }}
           >
-            {import.meta.env.DEV ? "Idea Note Dev" : "Idea Note"}
+            {import.meta.env.DEV ? "Lite Note Dev" : "Lite Note"}
           </span>
           {!import.meta.env.DEV && appVersion && (
             <span
@@ -827,8 +844,6 @@ export function Sidebar() {
         </div>
       </div>
 
-      {sharingFolder&&createPortal(<ShareDialog folderPath={sharingFolder} onClose={()=>setSharingFolder(null)}/>,document.body)}
-      {sharingNote&&createPortal(<ShareDialog onClose={()=>setSharingNote(false)}/>,document.body)}
       {/* Context menu */}
       {menu && (
         <div
@@ -1005,38 +1020,6 @@ export function Sidebar() {
                 >
                   {tr("添加到 .gitignore")}</MenuItem>
               )}
-              {menuNode.is_dir && (
-                <MenuItem
-                  disabled={menuHasMultiple}
-                  onClick={() => {
-                    setSharingFolder(menuNode.path);
-                    setMenu(null);
-                  }}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Share2 size={15} className="shrink-0" style={{ color: "var(--text-muted)" }} aria-hidden="true" />
-                    <span className="truncate">{tr("分享文件夹")}</span>
-                  </span>
-                </MenuItem>
-              )}
-              {!menuNode.is_dir && isMarkdownFile(menuNode.path) && (
-                <MenuItem
-                  disabled={menuHasMultiple}
-                  onClick={() => {
-                    const path = menuNode.path;
-                    setMenu(null);
-                    // The note dialog shares the active note, so open it first.
-                    void openFile(path).then(() => {
-                      if (useAppStore.getState().activeFilePath === path) setSharingNote(true);
-                    });
-                  }}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Share2 size={15} className="shrink-0" style={{ color: "var(--text-muted)" }} aria-hidden="true" />
-                    <span className="truncate">{tr("分享笔记")}</span>
-                  </span>
-                </MenuItem>
-              )}
             </>
           ) : (
             <>
@@ -1110,17 +1093,6 @@ export function Sidebar() {
                 }}
               >
                 {tr("刷新")}</MenuItem>
-              <MenuItem
-                onClick={() => {
-                  if (workspacePath) setSharingFolder(workspacePath);
-                  setMenu(null);
-                }}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <Share2 size={15} className="shrink-0" style={{ color: "var(--text-muted)" }} aria-hidden="true" />
-                  <span className="truncate">{tr("分享文件夹")}</span>
-                </span>
-              </MenuItem>
             </>
           )}
         </div>

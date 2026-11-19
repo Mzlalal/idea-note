@@ -2,7 +2,7 @@
   "app": {
     "windows": [
       {
-        "title": "Idea Note",
+        "title": "Lite Note",
         "width": 960,
         "height": 640,
         "minWidth": 640,

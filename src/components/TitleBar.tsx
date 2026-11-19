@@ -13,12 +13,11 @@ import {
   PanelLeftClose,
 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { isDraftPath, useAppStore } from "../store/useAppStore";
-import { isImageFile, isMarkdownFile } from "../lib/fs";
+import { useAppStore } from "../store/useAppStore";
+import { isImageFile } from "../lib/fs";
 import { isWindows } from "../lib/platform";
 import { ChatHeaderActions } from "./Panels/RightPanel";
 import { PresentationMenu } from "./Editor/PresentationMenu";
-import { ShareButton } from "./ShareDialog";
 import { commandKeyLabel } from "../lib/codemirror/keybindings";
 
 /** Count words: CJK characters count individually, latin runs as words. */
@@ -44,6 +43,7 @@ export function TitleBar({ leftWidth }: { leftWidth: number }) {
   const content = useAppStore((s) => s.content);
   const bottomPanelOpen = useAppStore((s) => s.bottomPanelOpen);
   const rightPanelOpen = useAppStore((s) => s.rightPanelOpen);
+  const showAiButton = useAppStore((s) => s.showAiButton);
   const rightPanelWidth = useAppStore((s) => s.rightPanelWidth);
   const runPanelOpen = useAppStore((s) => s.runPanelOpen);
   const runPanelWidth = useAppStore((s) => s.runPanelWidth);
@@ -177,9 +177,6 @@ export function TitleBar({ leftWidth }: { leftWidth: number }) {
               branchBusy={branchTaskBusy}
             />
           )}
-          {showSyncBtn && activeFilePath && (isMarkdownFile(activeFilePath) || isDraftPath(activeFilePath)) && (
-            <ShareButton />
-          )}
           {showTerminalBtn && (
             <PanelToggle
               title={bottomPanelOpen ? tr("关闭终端") : tr("打开终端")}
@@ -189,13 +186,15 @@ export function TitleBar({ leftWidth }: { leftWidth: number }) {
               <PanelBottom size={16} />
             </PanelToggle>
           )}
-          <PanelToggle
-            title={rightPanelOpen ? tr("关闭 AI 笔记助手") : tr("打开 AI 笔记助手")}
-            active={rightPanelOpen}
-            onClick={toggleRightPanel}
-          >
-            <Bot size={16} />
-          </PanelToggle>
+          {showAiButton && (
+            <PanelToggle
+              title={rightPanelOpen ? tr("关闭 AI 笔记助手") : tr("打开 AI 笔记助手")}
+              active={rightPanelOpen}
+              onClick={toggleRightPanel}
+            >
+              <Bot size={16} />
+            </PanelToggle>
+          )}
         </div>
 
         {/* Each right-side panel owns a matching title-bar strip. Their order

@@ -282,8 +282,8 @@ pub fn reveal<R: Runtime>(app: &AppHandle<R>, label: &str) {
     let _ = activate(app, label);
 }
 
-/// macOS Dock click with nothing visible: show the last used group again.
-pub fn reopen<R: Runtime>(app: &AppHandle<R>) {
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub fn last_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
     let state = app.state::<ProjectTabs>();
     let label = {
         let inner = state.lock();
@@ -294,9 +294,9 @@ pub fn reopen<R: Runtime>(app: &AppHandle<R>) {
             .cloned()
             .or_else(|| inner.members.first().map(|m| m.label.clone()))
     };
-    if let Some(label) = label {
-        reveal(app, &label);
-    }
+    label.as_deref().and_then(|label| app.get_webview_window(label))
+        .or_else(|| app.get_webview_window("main"))
+        .or_else(|| app.webview_windows().into_values().find(|window| is_project_window(window.label())))
 }
 
 /// Track the shown window's frame, and hand over when a tab window closes.
@@ -308,6 +308,12 @@ pub fn on_window_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
     let app = window.app_handle();
     let state = app.state::<ProjectTabs>();
     match event {
+        WindowEvent::Focused(true) => {
+            let mut inner = state.lock();
+            if let Some(group) = inner.group_of(label) {
+                inner.last_group = Some(group);
+            }
+        }
         WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
             let mut inner = state.lock();
             let Some(group) = inner.group_of(label) else { return };

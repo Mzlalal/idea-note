@@ -155,7 +155,7 @@ function applyTaskLists(root: DocumentFragment) {
   });
 }
 
-// Idea Note highlight blocks remain valid Markdown blockquotes on disk. Remove
+// Lite Note highlight blocks remain valid Markdown blockquotes on disk. Remove
 // the extension marker after rendering and add a print-only class to the quote.
 function applyHighlightBlocks(root: DocumentFragment) {
   root.querySelectorAll("blockquote").forEach((blockquote) => {

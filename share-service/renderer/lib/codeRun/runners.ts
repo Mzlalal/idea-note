@@ -146,7 +146,7 @@ export function builtinRunners(): CodeRunner[] {
 }
 
 export const defaultCodeRunConfig = (): CodeRunConfig => ({
-  enabled: true,
+  enabled: false,
   confirmEveryRun: true,
   fontSize: DEFAULT_CODE_RUN_FONT_SIZE,
   maxOutputKb: DEFAULT_MAX_OUTPUT_KB,

@@ -13,10 +13,15 @@ const ast = ts.createSourceFile("store.ts", source, ts.ScriptTarget.Latest, true
 const declaration = ast.statements.filter(ts.isVariableStatement)
   .flatMap((s) => [...s.declarationList.declarations]).find((d) => d.name.getText(ast) === "useAppStore");
 const object = declaration.initializer.arguments[0].body.expression;
-const actions = new Set(["openWorkspaceAt", "closeWorkspace", "refreshTree", "loadDirectory", "loadNotes", "setSidebarMode", "openFolder"]);
+const actions = new Set([
+  "openWorkspaceAt", "closeWorkspace", "refreshTree", "loadDirectory", "loadNotes",
+  "setSidebarMode", "openFolder", "save", "saveBeforeClose", "openStartupNote", "setContent",
+]);
 const methods = object.properties.filter((p) => actions.has(p.name?.getText(ast))).map((p) => p.getText(ast)).join(",\n");
 const globals = source.slice(source.indexOf("let workspaceRequest ="), source.indexOf("export const useAppStore ="));
-const code = ts.transpileModule(`${globals}\nexports.actions = {${methods}};`, {
+const noteNames = source.slice(source.indexOf("const DRAFT_PREFIX"), source.indexOf("function addTab("));
+const autosave = source.slice(source.indexOf("let saveInFlight:"), source.indexOf("/** Rendering more than this"));
+const code = ts.transpileModule(`${noteNames}\n${autosave}\n${globals}\nexports.actions = {${methods}};`, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 const deferred = () => {
@@ -33,19 +38,23 @@ function setup(overrides = {}) {
   const vaultPaths = [];
   let state = {
     workspacePath: null, tree: [], notesTree: [], notesLoaded: false, notesLoading: false,
-    sidebarMode: "files", docKey: 0, isDirty: false, expanded: {},
-    flushActiveTab: async () => {}, stopGlobalSearch() {}, refreshGitInfo: async () => {},
+    instantNotes: true, sidebarMode: "files", docKey: 0, isDirty: false, expanded: {},
+    activeFilePath: null, openTabs: [], draftContents: {}, content: "", savedContentHash: null,
+    flushActiveTab: async () => true, stopGlobalSearch() {}, refreshGitInfo: async () => {},
     openFile: async (path) => { state.activeFilePath = path; }, showToast() {},
   };
   const exports = {};
   vm.runInNewContext(code, {
-    exports, DirectoryTree, AbortController, abortable, console,
+    exports, DirectoryTree, AbortController, abortable, console, setTimeout, clearTimeout,
     get: () => state, set: (update) => { state = { ...state, ...(typeof update === "function" ? update(state) : update) }; },
     listDirectory: async () => [], listNotesIndex: async () => [], clearNoteExcerpts() {},
     useVaultStore: { getState: () => ({ lock: async () => {}, refresh: async (path) => vaultPaths.push(path) }) },
     localStorage: { setItem: (k, v) => storage.set(k, v), getItem: (k) => storage.get(k), removeItem: (k) => storage.delete(k) },
     WORKSPACE_KEY: "workspace", SIDEBAR_MODE_KEY: "sidebar", emptyFormats: {},
     ensureSyncConfigsLoaded: async () => {}, readExpandedFolders: () => ({}),
+    flushSecretEdits: async () => ({ blocked: 0 }), hasPendingSecretEdits: () => false,
+    captureDiskStat: async () => {}, tr: (message, params) => message.replace("{{0}}", params?.[0] ?? ""),
+    pickSavePath: () => { assert.fail("quick notes must save without a naming dialog"); },
     pushRecent: (path) => [path], dropRecent: () => [], readSyncConfig: () => ({}), readAttachmentConfig: () => ({}),
     window: { alert() {} },
     ...overrides,
@@ -68,6 +77,46 @@ test("latest project selection wins and loading appears before disk work finishe
   assert.equal(app.get().loadingWorkspace, null);
   assert.deepEqual(app.vaultPaths, ["/latest"]);
   assert.equal(app.storage.get("workspace"), "/latest");
+});
+
+test("the startup editor writes its timestamped note on immediate close", async () => {
+  const created = [];
+  const app = setup({
+    createQuickNote: async (dir, stamp, content) => {
+      created.push({ dir, stamp, content });
+      return `/documents/Lite Note/${stamp}.md`;
+    },
+  });
+  app.get().openStartupNote();
+  assert.match(app.get().activeFilePath, /^untitled:\/\/\d{8}-\d{6}$/);
+  assert.equal(created.length, 0);
+  app.get().setContent("written before close");
+  assert.equal(await app.get().saveBeforeClose(), true);
+  assert.equal(created.length, 1);
+  assert.equal(created[0].dir, null);
+  assert.equal(created[0].content, "written before close");
+  assert.equal(app.get().activeFilePath, `/documents/Lite Note/${created[0].stamp}.md`);
+  assert.equal(app.get().isDirty, false);
+});
+
+test("closing waits for edits typed during an in-flight save", async () => {
+  const first = deferred();
+  const writes = [];
+  const app = setup({ createQuickNote: async () => "/note.md", writeFile: async (_, content) => {
+    writes.push(content);
+    if (writes.length === 1) await first.promise;
+  } });
+  app.get().openStartupNote();
+  app.get().setContent("initial");
+  await app.get().saveBeforeClose();
+  app.get().setContent("second edit");
+  const closing = app.get().saveBeforeClose();
+  await until(() => writes.length === 1);
+  app.get().setContent("last edit");
+  first.resolve();
+  assert.equal(await closing, true);
+  assert.deepEqual(writes, ["second edit", "last edit"]);
+  assert.equal(app.get().isDirty, false);
 });
 
 test("closing during a pending open prevents it from reopening the workspace", async () => {

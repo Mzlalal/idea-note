@@ -2,7 +2,7 @@ import { tr } from "../../i18n/core.ts";
 import { useLanguage } from "../../i18n/react";
 import { ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { isDraftPath, useAppStore } from "../../store/useAppStore";
+import { draftTitle, isDraftPath, useAppStore } from "../../store/useAppStore";
 import { basename, isImageFile } from "../../lib/fs";
 import { copyFileToClipboard, copyText, relativePath } from "../../lib/clipboard";
 
@@ -208,7 +208,7 @@ export function EditorTabs() {
                 {showBefore && <DropIndicator side="left" />}
                 {showAfter && <DropIndicator side="right" />}
                 <Icon size={13} className="shrink-0" style={{ color: "var(--text-muted)" }} />
-                <span className="min-w-0 truncate">{draft ? tr("未命名") : basename(path)}</span>
+                <span className="min-w-0 truncate">{draft ? draftTitle(path) : basename(path)}</span>
                 <button
                   title={tr("关闭")}
                   // Keep the tab's pointer-capture drag from starting here: with

@@ -102,6 +102,50 @@ pub fn create_file(dir: String, name: String) -> Result<String, String> {
     Ok(file.to_string_lossy().to_string())
 }
 
+/// Create a timestamped note without overwriting another note from the same second.
+#[tauri::command]
+pub fn create_quick_note(
+    app: tauri::AppHandle,
+    dir: Option<String>,
+    name: String,
+    content: String,
+) -> Result<String, String> {
+    use std::io::Write;
+    use tauri::Manager;
+
+    let stamp = name.as_bytes();
+    if stamp.len() != 15
+        || stamp[8] != b'-'
+        || !stamp[..8].iter().chain(&stamp[9..]).all(u8::is_ascii_digit)
+    {
+        return Err("invalid note timestamp".into());
+    }
+
+    let dir = match dir {
+        Some(dir) => PathBuf::from(dir),
+        None => {
+            let parent = app.path().document_dir().or_else(|_| app.path().app_data_dir())
+                .map_err(|err| err.to_string())?;
+            let dir = parent.join("Lite Note");
+            fs::create_dir_all(&dir).map_err(|err| err.to_string())?;
+            dir
+        }
+    };
+
+    let mut note = tempfile::NamedTempFile::new_in(&dir).map_err(|err| err.to_string())?;
+    note.write_all(content.as_bytes()).map_err(|err| err.to_string())?;
+    for number in 1.. {
+        let filename = if number == 1 { format!("{name}.md") } else { format!("{name}-{number}.md") };
+        let path = dir.join(filename);
+        match note.persist_noclobber(&path) {
+            Ok(_) => return Ok(path.to_string_lossy().into_owned()),
+            Err(err) if err.error.kind() == std::io::ErrorKind::AlreadyExists => note = err.file,
+            Err(err) => return Err(err.error.to_string()),
+        }
+    }
+    unreachable!()
+}
+
 /// Create a file with the name exactly as given (no `.md` defaulting) —
 /// backs the "新建文件" action for arbitrary plain files.
 #[tauri::command]
