@@ -123,7 +123,7 @@ type Theme = "light" | "dark";
 export type SidebarMode = "tags" | "notes" | "outline" | "search";
 
 /** Layout of the sidebar's notes mode: time-sorted cards or the folder tree. */
-export type NotesViewMode = "cards" | "tree";
+export type NotesViewMode = "cards" | "tree" | "timeline";
 
 /**
  * Markdown editor view mode:
@@ -795,7 +795,8 @@ function readSearchOptions(): SearchOptions {
 }
 
 function readNotesViewMode(): NotesViewMode {
-  return localStorage.getItem(NOTES_VIEW_KEY) === "tree" ? "tree" : "cards";
+  const mode = localStorage.getItem(NOTES_VIEW_KEY);
+  return mode === "tree" || mode === "timeline" ? mode : "cards";
 }
 
 function readRecents(): string[] {

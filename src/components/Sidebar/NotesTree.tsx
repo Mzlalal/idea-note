@@ -8,10 +8,13 @@ import {
   StickyNote,
   LayoutList,
   ListTree,
+  CalendarDays,
+  FileText,
 } from "lucide-react";
 import { isMarkdownFile, dirname, type FileNode } from "../../lib/fs";
 import { useAppStore, type NotesViewMode } from "../../store/useAppStore";
 import { TreeDragProvider, useTreeDrag } from "./treeDrag";
+import { groupNotesByDate } from "../../lib/noteTimeline";
 import { useNoteExcerpt } from "../../lib/noteExcerpts";
 
 interface Props {
@@ -85,10 +88,11 @@ function foldSingleFolderChain(node: FileNode): FoldedFolder {
 
 /**
  * Sidebar notes mode: only markdown notes, shown without their extension.
- * Two layouts, toggled by the small switcher in its header row:
+ * Layouts are toggled in the header row:
  *  - "cards": Bear-style note cards (title + excerpt + time) sorted by
  *    modification time, folders as collapsible group headings;
  *  - "tree": the folder hierarchy, each note as a two-line row.
+ *  - "timeline": individual notes grouped by date.
  */
 export function NotesTree({ nodes, onContextMenu }: Props) {
   useLanguage();
@@ -131,15 +135,52 @@ export function NotesTree({ nodes, onContextMenu }: Props) {
           >
             <ListTree size={12} />
           </ViewButton>
+          <ViewButton mode="timeline" active={view === "timeline"} title={tr("时间轴")} onSelect={setView} withDivider>
+            <CalendarDays size={12} />
+          </ViewButton>
         </div>
       </div>
       <TreeDragProvider>
         {view === "cards" ? (
           <CardList nodes={filtered} depth={0} onContextMenu={onContextMenu} />
+        ) : view === "timeline" ? (
+          <NoteTimeline nodes={filtered} onContextMenu={onContextMenu} />
         ) : (
           <NoteList nodes={filtered} depth={0} onContextMenu={onContextMenu} />
         )}
       </TreeDragProvider>
+    </div>
+  );
+}
+
+const timelineIcons = ["📝", "💡", "📌", "📚"];
+
+function NoteTimeline({ nodes, onContextMenu }: Props) {
+  const groups = useMemo(() => groupNotesByDate(nodes), [nodes]);
+  const active = useAppStore((state) => state.activeFilePath);
+  const openFile = useAppStore((state) => state.openFile);
+  return (
+    <div className="space-y-4 px-2 pb-3">
+      {groups.map(({ date, notes }, index) => (
+        <section key={date} aria-label={date || tr("日期未知")} className="border-l-2 border-[var(--border)] pl-2">
+          <div className="flex items-center gap-2 px-2 py-1">
+            <span aria-hidden="true">{timelineIcons[index % timelineIcons.length]}</span>
+            <span className="flex-1 font-semibold tabular-nums">{date || tr("日期未知")}</span>
+            <span className="shrink-0 text-xs tabular-nums text-[var(--text-muted)]">
+              {tr("{{0}} 篇", { 0: notes.length })}
+            </span>
+          </div>
+          {notes.map((note) => (
+            <button key={note.path} type="button" title={note.path} data-tree-path={note.path}
+              aria-current={active === note.path}
+              onClick={() => void openFile(note.path)} onContextMenu={(event) => onContextMenu(event, note)}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left ${active === note.path ? "bg-[var(--active)] text-[var(--accent)]" : "hover:bg-[var(--hover)]"}`}>
+              <FileText size={14} className="shrink-0 opacity-70" aria-hidden="true" />
+              <span className="min-w-0 truncate">{note.name}</span>
+            </button>
+          ))}
+        </section>
+      ))}
     </div>
   );
 }
