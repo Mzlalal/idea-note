@@ -42,13 +42,13 @@
 
 ### 安装
 
-根据平台下载桌面安装包或发行文件
+本仓库发布的 macOS 和 Windows 下载包见 [Lite Note Releases](https://github.com/Mzlalal/idea-note/releases)。下表为上游 Idea Note 1.3.0 下载入口。
 
 | 系统 | 文件 | 说明 |
 | :--- | :--- | :--- |
-| **Windows** | **x64**：[安装包](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_windows_x64_setup.exe) \| [免安装包](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_windows_x64.zip)<br>**x86**：[安装包](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_windows_x86_setup.exe) \| [免安装包](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_windows_x86.zip) | 大多数电脑选 x64<br>32 位系统选 x86 |
-| **MacOS** | **Apple Silicon**：[安装包](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_macos_aarch64.dmg) \| [应用包压缩](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_macos_aarch64.app.tar.gz)<br>**Intel**：[安装包](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_macos_x64.dmg) \| [应用包压缩](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_macos_x64.app.tar.gz) | M芯片选 Apple Silicon<br>Intel 芯片选 Intel  |
-| **Linux** | **安装包**：[deb](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_linux_amd64.deb) \| [rpm](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_linux_x86_64.rpm)<br>**免安装**：[AppImage](https://github.com/Liubsyy/idea-note/releases/latest/download/Idea.Note_1.3.0_linux_amd64.AppImage) | Ubuntu/Debian/Linux Mint选deb<br>Fedora/RHEL/CentOS Stream/openSUSE选rpm |
+| **Windows** | **x64**：[安装包](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_windows_x64_setup.exe) \| [免安装包](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_windows_x64.zip)<br>**x86**：[安装包](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_windows_x86_setup.exe) \| [免安装包](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_windows_x86.zip) | 大多数电脑选 x64<br>32 位系统选 x86 |
+| **MacOS** | **Apple Silicon**：[安装包](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_macos_aarch64.dmg) \| [应用包压缩](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_macos_aarch64.app.tar.gz)<br>**Intel**：[安装包](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_macos_x64.dmg) \| [应用包压缩](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_macos_x64.app.tar.gz) | M芯片选 Apple Silicon<br>Intel 芯片选 Intel  |
+| **Linux** | **安装包**：[deb](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_linux_amd64.deb) \| [rpm](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_linux_x86_64.rpm)<br>**免安装**：[AppImage](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_linux_amd64.AppImage) | Ubuntu/Debian/Linux Mint选deb<br>Fedora/RHEL/CentOS Stream/openSUSE选rpm |
 
 | Skill | 下载 | 说明 |
 | :--- | :--- | :--- |
@@ -65,8 +65,8 @@ xattr -rd com.apple.quarantine /Applications/Lite\ Note.app
 ### 笔记管理
 
 左侧列表提供三种视图：
-- **文件模式**：完整文件树，可新建、重命名、拖拽整理文件与文件夹，也能编辑普通文本、查看图片，当作轻量的项目文件管理器使用
-- **笔记模式**：只显示 Markdown 笔记，支持卡片和树形两种展示方式，专注于笔记本身
+- **标签模式**可按标签筛选笔记并查看篇数。右键笔记选择「编辑标签」，用逗号分隔多个标签。标签保存在 Markdown 文件顶部，会随笔记一起提交和同步。
+- **笔记模式**提供卡片、树形和时间轴。笔记按创建时间从新到旧排列，时间轴按日期分组，卡片同时显示相对时间。
 - **预览大纲**：当前笔记的标题大纲，点击标题即可跳转
 
 
