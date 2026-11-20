@@ -580,7 +580,7 @@ async function commitAll(
   dir: string,
   getMessage: () => string | Promise<string>,
 ): Promise<boolean> {
-  await gitOk(dir, ["add", "-u", ":/"]);
+  await gitOk(dir, ["add", "-u"]);
   if ((await gitRun(dir, ["diff", "--cached", "--quiet"])).code === 0) return false;
   await ensureIdentity(dir);
   await gitOk(dir, ["commit", "-m", await getMessage()]);
@@ -995,7 +995,7 @@ export async function syncWorkspace(
     }
 
     if (!(await hasCommits(dir))) {
-      return { ok: true, conflictFiles: [], changed: false, message: tr("没有可同步的内容") };
+      return { ok: true, conflictFiles: [], changed: false, message: tr("还没有可同步的提交。请先保存笔记，在手动同步中选中并提交，然后再同步。") };
     }
 
     // 4. Push — skipped entirely when the remote already has everything,

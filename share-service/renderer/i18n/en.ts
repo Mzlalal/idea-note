@@ -1305,6 +1305,7 @@ export default {
   "已同步到本地仓库": "Synced to local repository",
   "已是最新，无需同步": "Already up to date",
   "{{0}}（本地更改已保存，恢复后重试）": "{{0}} (local changes saved; retry after recovery)",
+  "还没有可同步的提交。请先保存笔记，在手动同步中选中并提交，然后再同步。": "No commits to sync yet. Save a note, select and commit it in Manual Sync, then sync again.",
   "没有可同步的内容": "Nothing to sync",
   "{{0}}（本地更改已保存）": "{{0}} (local changes saved)",
   "已同步，{{0}} 个文件存在冲突待处理": "Synced; {{0}} files have conflicts to resolve",

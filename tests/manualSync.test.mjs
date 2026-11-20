@@ -237,3 +237,17 @@ test('discard before the first commit removes only the selected new file', async
   assert.equal(readFileSync(join(unborn, 'keep.md'), 'utf8'), 'keep new file\n');
   assert.equal(git(unborn, 'ls-files', '-z'), '');
 });
+
+test('first sync with an empty index returns guidance without staging untracked files', async t => {
+  const { git, api, local } = fixture(t);
+  const workspace = join(local, 'empty-workspace');
+  const remote = join(local, 'empty-remote.git');
+  git(local, 'init', '--bare', remote);
+  git(local, 'init', '--initial-branch=main', workspace);
+  git(workspace, 'remote', 'add', 'origin', remote);
+  writeFileSync(join(workspace, 'untracked.md'), 'private');
+  const result = await api.syncWorkspace(workspace);
+  assert.equal(result.ok, true, result.message);
+  assert.match(result.message, /手动同步/);
+  assert.equal(git(workspace, 'ls-files'), '');
+});
