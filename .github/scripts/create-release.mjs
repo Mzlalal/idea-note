@@ -181,11 +181,19 @@ async function main() {
   const baseUrl = `https://api.github.com/repos/${repo}`;
   const headers = githubHeaders(token);
 
-  await assertNotFound(
-    `${baseUrl}/releases/tags/${encodeURIComponent(tagName)}`,
-    { headers },
-    `Release already exists for tag: ${tagName}`,
-  );
+  const existing = await fetch(`${baseUrl}/releases/tags/${encodeURIComponent(tagName)}`, { headers });
+  if (existing.ok) {
+    const release = await existing.json();
+    if (release.draft) throw new Error(`Release ${tagName} is still a draft`);
+    console.log(`Reusing release ${tagName} (${release.id})`);
+    await writeOutput('release_id', String(release.id));
+    await writeOutput('tag_name', tagName);
+    await writeOutput('prerelease', String(release.prerelease));
+    return;
+  }
+  if (existing.status !== 404) {
+    throw new Error(`Could not look up release ${tagName}: HTTP ${existing.status}`);
+  }
   await assertNotFound(
     `${baseUrl}/git/ref/tags/${encodeURIComponent(tagName)}`,
     { headers },
