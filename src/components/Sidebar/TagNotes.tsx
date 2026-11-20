@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { tr } from "../../i18n/core";
-import { useAppStore } from "../../store/useAppStore";
+import { NoteCard } from "./NotesTree";
+import { TreeDragProvider } from "./treeDrag";
 import type { FileNode } from "../../lib/fs";
 
 export function TagNotes({ nodes, onContextMenu }: {
@@ -8,8 +9,6 @@ export function TagNotes({ nodes, onContextMenu }: {
   onContextMenu: (event: React.MouseEvent, node: FileNode) => void;
 }) {
   const [selected, setSelected] = useState("");
-  const path = useAppStore((state) => state.activeFilePath);
-  const openFile = useAppStore((state) => state.openFile);
   const groups = useMemo(() => {
     const groups = new Map<string, FileNode[]>();
     const visit = (entries: FileNode[]) => {
@@ -42,15 +41,13 @@ export function TagNotes({ nodes, onContextMenu }: {
           </button>
         ))}
       </div>
-      <div className="space-y-0.5 border-t border-[var(--border)] pt-2">
-        {groups.get(active)?.map((note) => (
-          <button key={note.path} type="button" title={note.path} data-tree-path={note.path} aria-current={path === note.path}
-            onClick={() => void openFile(note.path)} onContextMenu={(event) => onContextMenu(event, note)}
-            className={`block w-full truncate rounded-md px-3 py-1.5 text-left ${path === note.path ? "bg-[var(--active)] text-[var(--accent)]" : "hover:bg-[var(--hover)]"}`}>
-            {note.name}
-          </button>
-        ))}
-      </div>
+      <TreeDragProvider>
+        <div className="space-y-1.5 border-t border-[var(--border)] pt-2">
+          {groups.get(active)?.map((note) => (
+            <NoteCard key={note.path} node={note} onContextMenu={onContextMenu} />
+          ))}
+        </div>
+      </TreeDragProvider>
     </div>
   );
 }

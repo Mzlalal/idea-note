@@ -9,7 +9,6 @@ import {
   LayoutList,
   ListTree,
   CalendarDays,
-  FileText,
 } from "lucide-react";
 import { isMarkdownFile, dirname, type FileNode } from "../../lib/fs";
 import { useAppStore, type NotesViewMode } from "../../store/useAppStore";
@@ -157,8 +156,6 @@ const timelineIcons = ["📝", "💡", "📌", "📚"];
 
 function NoteTimeline({ nodes, onContextMenu }: Props) {
   const groups = useMemo(() => groupNotesByDate(nodes), [nodes]);
-  const active = useAppStore((state) => state.activeFilePath);
-  const openFile = useAppStore((state) => state.openFile);
   return (
     <div className="space-y-4 px-2 pb-3">
       {groups.map(({ date, notes }, index) => (
@@ -170,15 +167,11 @@ function NoteTimeline({ nodes, onContextMenu }: Props) {
               {tr("{{0}} 篇", { 0: notes.length })}
             </span>
           </div>
-          {notes.map((note) => (
-            <button key={note.path} type="button" title={note.path} data-tree-path={note.path}
-              aria-current={active === note.path}
-              onClick={() => void openFile(note.path)} onContextMenu={(event) => onContextMenu(event, note)}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left ${active === note.path ? "bg-[var(--active)] text-[var(--accent)]" : "hover:bg-[var(--hover)]"}`}>
-              <FileText size={14} className="shrink-0 opacity-70" aria-hidden="true" />
-              <span className="min-w-0 truncate">{note.name}</span>
-            </button>
-          ))}
+          <div className="space-y-1.5 pt-1">
+            {notes.map((note) => (
+              <NoteCard key={note.path} node={note} onContextMenu={onContextMenu} />
+            ))}
+          </div>
         </section>
       ))}
     </div>
@@ -349,7 +342,7 @@ function CardGroup({
   );
 }
 
-function NoteCard({
+export function NoteCard({
   node,
   onContextMenu,
 }: {
@@ -380,7 +373,8 @@ function NoteCard({
         openFile(node.path);
       }}
       onContextMenu={(e) => onContextMenu(e, node)}
-      className="cursor-pointer rounded-lg px-2.5 py-2 transition-colors"
+      title={node.path}
+      className="cursor-pointer rounded-lg px-3 py-2.5 transition-colors"
       style={{
         opacity: isDragging ? 0.5 : 1,
         background: isActive ? "var(--active)" : "var(--bg)",

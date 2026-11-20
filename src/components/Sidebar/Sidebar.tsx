@@ -938,7 +938,7 @@ export function Sidebar() {
                         await writeFile(path, next);
                         if (useAppStore.getState().activeFilePath === path)
                           await useAppStore.getState().checkExternalChange();
-                        await state.loadNotes();
+                        if (useAppStore.getState().workspacePath === state.workspacePath) await state.loadNotes(true);
                       } catch (error) {
                         throw new Error(tr("保存标签失败：{{0}}", { 0: String(error) }));
                       }

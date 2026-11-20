@@ -575,7 +575,7 @@ interface AppState {
   revealInTree: (path: string) => Promise<boolean>;
   refreshTree: () => Promise<void>;
   loadDirectory: (path: string) => Promise<FileNode[]>;
-  loadNotes: () => Promise<void>;
+  loadNotes: (force?: boolean) => Promise<void>;
   openFile: (path: string) => Promise<void>;
   /** Select a folder: open its README.md if present, else show its listing. */
   openFolder: (node: FileNode) => Promise<void>;
@@ -2309,12 +2309,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     return children;
   },
 
-  loadNotes: async () => {
+  loadNotes: async (force = false) => {
     const { workspacePath, notesLoaded, notesLoading } = get();
-    if (!workspacePath || notesLoaded || notesLoading) return;
+    if (!workspacePath || (!force && (notesLoaded || notesLoading))) return;
+    notesController?.abort();
     const controller = new AbortController();
     notesController = controller;
-    set({ notesLoading: true, notesError: null });
+    set({ notesLoading: true, notesError: null, notesLoaded: false });
     try {
       const notesTree = await listNotesIndex(workspacePath, controller.signal);
       if (notesController === controller && get().workspacePath === workspacePath)

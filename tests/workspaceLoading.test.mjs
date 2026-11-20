@@ -158,7 +158,7 @@ test("notes index is optional, does not delay opening, and is cancelled when lea
   assert.equal(signal, undefined);
   app.get().setSidebarMode("notes");
   assert.equal(app.get().notesLoading, true);
-  app.get().setSidebarMode("files");
+  app.get().setSidebarMode("outline");
   assert.equal(signal.aborted, true);
   await Promise.resolve();
   assert.equal(app.get().notesLoading, false);
@@ -173,4 +173,16 @@ test("opening an unloaded deep folder finds README on disk", async () => {
   await app.get().openFolder({ path: "/ws/deep", is_dir: true, children: null });
   assert.equal(app.get().activeFilePath, "/ws/deep/README.md");
   assert.equal(app.get().selectedPath, "/ws/deep");
+});
+
+test("forced notes refresh updates tags after a cached index", async () => {
+  let tags = ["旧标签"];
+  const app = setup({ listNotesIndex: async () => [
+    { name: "note.md", path: "/notes/note.md", is_dir: false, tags },
+  ] });
+  await app.get().openWorkspaceAt("/notes");
+  await app.get().loadNotes();
+  tags = ["新标签"];
+  await app.get().loadNotes(true);
+  assert.deepEqual(app.get().notesTree[0].tags, tags);
 });
