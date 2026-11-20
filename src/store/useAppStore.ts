@@ -120,7 +120,7 @@ type Theme = "light" | "dark";
 
 /** Which list the sidebar shows: file tree, markdown notes, outline, or
  *  workspace-wide search. */
-export type SidebarMode = "files" | "notes" | "outline" | "search";
+export type SidebarMode = "tags" | "notes" | "outline" | "search";
 
 /** Layout of the sidebar's notes mode: time-sorted cards or the folder tree. */
 export type NotesViewMode = "cards" | "tree";
@@ -778,7 +778,7 @@ const RECENT_MAX = 30;
 
 function readSidebarMode(): SidebarMode {
   const raw = localStorage.getItem(SIDEBAR_MODE_KEY);
-  return raw === "notes" || raw === "outline" || raw === "search" ? raw : "files";
+  return raw === "notes" || raw === "outline" || raw === "search" ? raw : "tags";
 }
 
 function readSearchOptions(): SearchOptions {
@@ -1895,7 +1895,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           ...readAttachmentConfig(path),
         }));
         void get().refreshGitInfo();
-        if (get().sidebarMode === "notes") void get().loadNotes();
+        if (["notes", "tags"].includes(get().sidebarMode)) void get().loadNotes();
       } finally {
         if (request === workspaceRequest) set({ loadingWorkspace: null });
       }
@@ -2049,7 +2049,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSidebarMode: (sidebarMode) => {
     localStorage.setItem(SIDEBAR_MODE_KEY, sidebarMode);
     set({ sidebarMode });
-    if (sidebarMode === "notes") void get().loadNotes();
+    if (sidebarMode === "notes" || sidebarMode === "tags") void get().loadNotes();
     else if (notesController) {
       notesController.abort();
       notesController = null;
@@ -2210,7 +2210,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       for (const path of paths) expanded[path] = true;
       set({ ...extra, expanded });
     };
-    if (sidebarMode === "notes") {
+    if (sidebarMode === "notes" || sidebarMode === "tags") {
       const paths: string[] = [];
       const walk = (nodes: FileNode[]) => {
         for (const node of nodes) {
@@ -2252,7 +2252,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     for (let dir = dirname(path); relativePathWithinWorkspace(workspacePath, dir); dir = dirname(dir))
       parents.unshift(dir);
     let tree: FileNode[] | undefined;
-    if (sidebarMode !== "notes") {
+    if (sidebarMode !== "notes" && sidebarMode !== "tags") {
       const current = directoryTree;
       if (!current) return false;
       try {
@@ -2281,7 +2281,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     notesController = null;
     clearNoteExcerpts();
     set({ notesLoaded: false, notesLoading: false, notesError: null });
-    if (get().sidebarMode === "notes") void get().loadNotes();
+    if (["notes", "tags"].includes(get().sidebarMode)) void get().loadNotes();
     try { await nextTree.load(workspacePath); }
     catch (error) {
       if (directoryTree !== nextTree) return;
@@ -2778,7 +2778,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             : {},
         );
         await captureDiskStat(activeFilePath);
-        if (!quiet || get().sidebarMode === "notes") void get().refreshTree().catch(console.warn);
+        if (!quiet || ["notes", "tags"].includes(get().sidebarMode)) void get().refreshTree().catch(console.warn);
       } finally {
         set({ saving: false });
       }
@@ -3566,7 +3566,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSidebarFontSize: (mode, size) => {
     const clamped = Math.min(SIDEBAR_FONT_MAX, Math.max(SIDEBAR_FONT_MIN, size));
     const key =
-      mode === "files"
+      mode === "tags"
         ? "sidebarFilesFontSize"
         : mode === "notes"
           ? "sidebarNotesFontSize"

@@ -112,6 +112,8 @@ pub struct FileNode {
     mtime: Option<u64>,
     /// First content line of a markdown note — the sidebar notes-mode preview.
     excerpt: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tags: Vec<String>,
     /// The entry itself is a symlink (`is_dir` describes its target).
     is_symlink: bool,
 }
@@ -288,6 +290,7 @@ fn read_tree_inner(dir: &Path, visited: &mut HashSet<PathBuf>) -> Result<Vec<Fil
                 children: Some(children),
                 mtime: None,
                 excerpt: None,
+                tags: Vec::new(),
                 is_symlink,
             });
         } else {
@@ -303,6 +306,7 @@ fn read_tree_inner(dir: &Path, visited: &mut HashSet<PathBuf>) -> Result<Vec<Fil
                 children: None,
                 mtime: file_mtime_ms(&metadata),
                 excerpt,
+                tags: Vec::new(),
                 is_symlink,
             });
         }
@@ -352,6 +356,7 @@ fn read_directory(dir: &Path) -> Result<Vec<FileNode>, String> {
                 file_mtime_ms(&metadata)
             },
             excerpt: None,
+                tags: Vec::new(),
             is_symlink,
         });
     }
@@ -366,8 +371,30 @@ pub async fn list_directory(path: String) -> Result<Vec<FileNode>, String> {
         .map_err(|e| e.to_string())?
 }
 
-/// The notes index is independent of the lazy browser tree and never opens
-/// note contents. Check cancellation between entries and never follow directory
+fn read_note_tags(path: &Path) -> Vec<String> {
+    let Ok(file) = fs::File::open(path) else { return Vec::new() };
+    let mut head = Vec::new();
+    if file.take(64 * 1024).read_to_end(&mut head).is_err() {
+        return Vec::new();
+    }
+    let Some(text) = crate::encoding::decode_head(head) else { return Vec::new() };
+    let mut lines = text.trim_start_matches('\u{feff}').lines();
+    if lines.next().map(str::trim_end) != Some("---") {
+        return Vec::new();
+    }
+    let mut tags = Vec::new();
+    for line in lines {
+        if line.trim_end() == "---" {
+            return tags;
+        }
+        if let Some(value) = line.strip_prefix("tags:") {
+            tags = serde_json::from_str(value.trim()).unwrap_or_default();
+        }
+    }
+    Vec::new()
+}
+
+/// The notes index reads a bounded Markdown header for tags. Check cancellation between entries and never follow directory
 /// symlinks/junctions: a project can link back to its own parent.
 fn read_notes_index(dir: &Path, cancelled: &AtomicBool) -> Result<Vec<FileNode>, String> {
     check_search_cancelled(cancelled)?;
@@ -397,6 +424,7 @@ fn read_notes_index(dir: &Path, cancelled: &AtomicBool) -> Result<Vec<FileNode>,
                     children: Some(children),
                     mtime: None,
                     excerpt: None,
+                    tags: Vec::new(),
                     is_symlink: false,
                 });
             }
@@ -415,6 +443,7 @@ fn read_notes_index(dir: &Path, cancelled: &AtomicBool) -> Result<Vec<FileNode>,
                 children: None,
                 mtime: file_mtime_ms(&metadata),
                 excerpt: None,
+                tags: read_note_tags(&path),
                 is_symlink: kind.is_symlink(),
             });
         }
@@ -895,6 +924,16 @@ mod browsing_tests {
         assert_eq!(cycle.name, "self");
         assert!(cycle.is_dir);
         assert!(cycle.children.as_ref().unwrap().is_empty());
+    }
+
+    #[test]
+    fn notes_index_reads_tags_only_from_frontmatter() {
+        let root = tempfile::tempdir().unwrap();
+        let note = root.path().join("note.md");
+        fs::write(&note, "---\ntags: [\"风控\",\"会员\"]\n---\n# Note\n").unwrap();
+        assert_eq!(read_note_tags(&note), vec!["风控", "会员"]);
+        fs::write(&note, "# Note\n---\ntags: [\"正文\"]\n---\n").unwrap();
+        assert!(read_note_tags(&note).is_empty());
     }
 
     #[test]

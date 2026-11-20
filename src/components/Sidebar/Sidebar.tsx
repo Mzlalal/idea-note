@@ -7,7 +7,7 @@ import {
   FolderOpen,
   FolderX,
   Folders,
-  Folder,
+  Tag,
   NotebookText,
   TableOfContents,
   RefreshCw,
@@ -35,6 +35,8 @@ import {
   basename,
   dirname,
   fileStat,
+  readFile,
+  writeFile,
   findNode,
   isImageFile,
   isMarkdownFile,
@@ -52,7 +54,8 @@ import {
   exportCurrentNoteAsPdf,
   printCurrentNote,
 } from "../../lib/print/printNote";
-import { FileTree } from "./FileTree";
+import { TagNotes } from "./TagNotes";
+import { updateNoteTags } from "../../lib/noteTags";
 import { NotesTree } from "./NotesTree";
 import { OutlinePanel } from "./OutlinePanel";
 import { SearchPanel } from "./SearchPanel";
@@ -65,7 +68,7 @@ import { mergeAllProjectWindows, useProjectTabs } from "../../lib/projectTabs";
 type BrowseSidebarMode = Exclude<SidebarMode, "search">;
 
 const MODES: { id: BrowseSidebarMode; title: string; icon: React.ReactNode }[] = [
-  { id: "files", get title() { return tr("文件模式"); }, icon: <Folder size={14} /> },
+  { id: "tags", get title() { return tr("标签模式"); }, icon: <Tag size={14} /> },
   { id: "notes", get title() { return tr("笔记模式"); }, icon: <NotebookText size={14} /> },
   { id: "outline", get title() { return tr("预览大纲"); }, icon: <TableOfContents size={14} /> },
 ];
@@ -179,7 +182,7 @@ export function Sidebar() {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [appVersion, setAppVersion] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const lastBrowseMode = useRef<BrowseSidebarMode>("files");
+  const lastBrowseMode = useRef<BrowseSidebarMode>("tags");
 
   // Spin the refresh icon while the tree reloads. listDir is usually instant, so
   // hold the spinner for a short minimum (one full rotation) — otherwise the
@@ -397,8 +400,8 @@ export function Sidebar() {
   /** Tree actions used from search results return to the tree search was
    *  opened from (files unless that was notes). */
   const showTree = () => {
-    if (sidebarMode !== "files" && sidebarMode !== "notes")
-      setSidebarMode(lastBrowseMode.current === "notes" ? "notes" : "files");
+    if (sidebarMode !== "tags" && sidebarMode !== "notes")
+      setSidebarMode(lastBrowseMode.current === "notes" ? "notes" : "tags");
   };
 
   const locateActiveFile = async () => {
@@ -432,7 +435,7 @@ export function Sidebar() {
     // Both keys are accepted because the forward-delete key is reported as
     // "Delete", while the main delete key on a Mac is reported as "Backspace".
     if (
-      (sidebarMode === "files" || sidebarMode === "notes") &&
+      (sidebarMode === "tags" || sidebarMode === "notes") &&
       (e.key === "Delete" || e.key === "Backspace") &&
       selection.length &&
       !e.repeat
@@ -648,7 +651,7 @@ export function Sidebar() {
                 )}
               </div>
             )}
-            {workspacePath && (sidebarMode === "files" || sidebarMode === "notes" || searchActive) && (
+            {workspacePath && (sidebarMode === "tags" || sidebarMode === "notes" || searchActive) && (
               <IconButton
                 title={tr("定位当前文件")}
                 compact
@@ -667,7 +670,7 @@ export function Sidebar() {
                 />
               </IconButton>
             )}
-            {workspacePath && (sidebarMode === "files" || sidebarMode === "notes" || searchActive) && (
+            {workspacePath && (sidebarMode === "tags" || sidebarMode === "notes" || searchActive) && (
               <div className="relative">
                 <IconMenuButton
                   title={tr("更多功能")}
@@ -743,7 +746,7 @@ export function Sidebar() {
         <div
           ref={listRef}
           data-sidebar-drop-root={
-            workspacePath && (sidebarMode === "files" || sidebarMode === "notes")
+            workspacePath && (sidebarMode === "tags" || sidebarMode === "notes")
               ? workspacePath
               : undefined
           }
@@ -761,7 +764,7 @@ export function Sidebar() {
           }`}
           style={{
             fontSize:
-              sidebarMode === "files" || sidebarMode === "search"
+              sidebarMode === "tags" || sidebarMode === "search"
                 ? "var(--sidebar-files-font-size)"
                 : sidebarMode === "notes"
                   ? "var(--sidebar-notes-font-size)"
@@ -792,14 +795,12 @@ export function Sidebar() {
                 {notesLoading && <p role="status" className="px-3 py-1 text-xs" style={{ color: "var(--text-muted)" }}>{tr("正在更新笔记…")}</p>}
                 <NotesTree nodes={notesTree} onContextMenu={openContextMenu} />
               </>
-            ) : tree.length ? (
-              <FileTree nodes={tree} onContextMenu={openContextMenu} />
+            ) : notesLoading && !notesTree.length ? (
+              <p role="status" className="p-4 text-xs">{tr("正在查找笔记…")}</p>
+            ) : notesError ? (
+              <p role="alert" className="p-4 text-xs">{notesError}</p>
             ) : (
-              <p
-                className="px-4 py-6 text-center text-xs"
-                style={{ color: "var(--text-muted)" }}
-              >
-                {tr("这个文件夹是空的。")}</p>
+              <TagNotes key={workspacePath} nodes={notesTree} onContextMenu={openContextMenu} />
             )
           ) : (
             <button
@@ -918,6 +919,33 @@ export function Sidebar() {
                 }}
               >
                 {tr("新建 .gitignore")}</MenuItem>
+              {!menuHasMultiple && !menuNode.is_dir && isMarkdownFile(menuNode.path) && (
+                <MenuItem onClick={() => {
+                  const path = menuNode.path;
+                  const note = findNode(notesTree, path);
+                  const store = useAppStore.getState();
+                  setMenu(null);
+                  store.openPrompt({
+                    title: tr("编辑标签（用逗号分隔）"),
+                    defaultValue: note?.tags?.join("，") ?? "",
+                    onSubmit: async (input) => {
+                      try {
+                        const state = useAppStore.getState();
+                        if (state.activeFilePath === path && !(await state.flushActiveTab())) return;
+                        const source = await readFile(path);
+                        const next = updateNoteTags(source, input);
+                        if (next === source) return;
+                        await writeFile(path, next);
+                        if (useAppStore.getState().activeFilePath === path)
+                          await useAppStore.getState().checkExternalChange();
+                        await state.loadNotes();
+                      } catch (error) {
+                        throw new Error(tr("保存标签失败：{{0}}", { 0: String(error) }));
+                      }
+                    },
+                  });
+                }}>{tr("编辑标签")}</MenuItem>
+              )}
               <SubMenuItem label={tr("复制")}>
                 <MenuItem
                   hint="⌘C"

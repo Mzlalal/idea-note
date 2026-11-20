@@ -491,14 +491,14 @@ export function SettingsWindow() {
                 <Row title={tr("紧凑侧栏")} desc={tr("减小列表的行间距，一屏显示更多")}>
                   <Toggle checked={compactSidebar} onChange={setCompactSidebar} />
                 </Row>
-                <Row title={tr("文件模式")} desc={tr("完整文件树列表的字体大小")}>
+                <Row title={tr("标签模式")} desc={tr("标签列表的字体大小")}>
                   <Stepper
                     value={sidebarFilesFontSize}
                     min={11}
                     max={20}
                     step={1}
                     format={(v) => `${v}px`}
-                    onChange={(v) => setSidebarFontSize("files", v)}
+                    onChange={(v) => setSidebarFontSize("tags", v)}
                   />
                 </Row>
                 <Row title={tr("笔记模式")} desc={tr("Markdown 笔记列表的字体大小")}>
