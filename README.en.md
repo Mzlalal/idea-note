@@ -37,17 +37,17 @@ See the [changelog](./CHANGELOG.md) for release notes. The newest entry is avail
 
 ### Installation
 
-Find this fork’s macOS and Windows packages on [Lite Note Releases](https://github.com/Mzlalal/idea-note/releases). The table below links to upstream Idea Note 1.3.0.
+Find this fork’s macOS and Windows packages on [Lite Note Releases](https://github.com/Mzlalal/idea-note/releases).
 
 | Platform | Downloads | Notes |
 | :--- | :--- | :--- |
-| **Windows** | **x64**: [Installer](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_windows_x64_setup.exe) \| [Portable](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_windows_x64.zip)<br>**x86**: [Installer](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_windows_x86_setup.exe) \| [Portable](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_windows_x86.zip) | Choose x64 for most computers; x86 for 32-bit Windows |
-| **macOS** | **Apple Silicon**: [Installer](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_macos_aarch64.dmg) \| [App archive](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_macos_aarch64.app.tar.gz)<br>**Intel**: [Installer](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_macos_x64.dmg) \| [App archive](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_macos_x64.app.tar.gz) | Choose Apple Silicon for M-series chips or Intel for Intel Macs |
-| **Linux** | **Installers**: [deb](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_linux_amd64.deb) \| [rpm](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_linux_x86_64.rpm)<br>**Portable**: [AppImage](https://github.com/Liubsyy/idea-note/releases/download/1.3.0/Idea.Note_1.3.0_linux_amd64.AppImage) | deb for Ubuntu/Debian/Linux Mint; rpm for Fedora/RHEL/CentOS Stream/openSUSE |
+| **Windows** | **x64**: [Installer](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_windows_x64_setup.exe) \| [Portable](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_windows_x64.zip)<br>**x86**: [Installer](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_windows_x86_setup.exe) \| [Portable](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_windows_x86.zip) | Choose x64 for most computers; x86 for 32-bit Windows |
+| **macOS** | **Apple Silicon**: [Installer](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_macos_aarch64.dmg) \| [App archive](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_macos_aarch64.app.tar.gz)<br>**Intel**: [Installer](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_macos_x64.dmg) \| [App archive](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_macos_x64.app.tar.gz) | Choose Apple Silicon for M-series chips or Intel for Intel Macs |
+| **Linux** | **Installers**: [deb](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_linux_amd64.deb) \| [rpm](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_linux_x86_64.rpm)<br>**Portable**: [AppImage](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_linux_amd64.AppImage) | deb for Ubuntu/Debian/Linux Mint; rpm for Fedora/RHEL/CentOS Stream/openSUSE |
 
 | Skill | Download | Notes |
 | :--- | :--- | :--- |
-| **AI assistant Skill** | [ZIP](https://github.com/Liubsyy/idea-note/releases/latest/download/idea-note-skill.zip) | Extract `idea-note/` into your AI assistant's skills directory and load it to write highlight blocks, interactive components, and more |
+| **AI assistant Skill** | [ZIP](https://github.com/Mzlalal/idea-note/releases/latest/download/idea-note-skill.zip) | Extract `idea-note/` into your AI assistant's skills directory and load it to write highlight blocks, interactive components, and more |
 
 If macOS reports that the application cannot be opened or is damaged on first launch:
 
@@ -109,7 +109,7 @@ The assistant can create **interactive components**, too. Ask it to add an inter
 
 Learn more in the [AI assistant implementation guide](./doc/AI笔记助手原理.md) and [DeepSeek setup guide](./doc/AI笔记助手接入DeepSeek步骤.md) (Chinese).
 
-External AI assistants can use the [Lite Note Skill](https://github.com/Liubsyy/idea-note/releases/latest/download/idea-note-skill.zip) to gain the same note-writing capabilities as the built-in AI assistant, including highlight blocks, interactive components, and more.
+External AI assistants can use the [Lite Note Skill](https://github.com/Mzlalal/idea-note/releases/latest/download/idea-note-skill.zip) to gain the same note-writing capabilities as the built-in AI assistant, including highlight blocks, interactive components, and more.
 
 ### Encrypting notes
 
