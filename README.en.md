@@ -12,8 +12,8 @@
   <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux" />
 </p>
 <p align="center">
-  <a href="https://github.com/Liubsyy/idea-note/releases/latest"><img src="https://img.shields.io/github/v/release/Liubsyy/idea-note?display_name=tag&style=flat-square&logo=github&label=version&color=0ea5e9" alt="Latest release" /></a>
-  <a href="https://github.com/Liubsyy/idea-note/releases"><img src="https://img.shields.io/github/downloads/Liubsyy/idea-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
+  <a href="https://github.com/Mzlalal/idea-note/releases/latest"><img src="https://img.shields.io/github/v/release/Mzlalal/idea-note?display_name=tag&style=flat-square&logo=github&label=version&color=0ea5e9" alt="Latest release" /></a>
+  <a href="https://github.com/Mzlalal/idea-note/releases"><img src="https://img.shields.io/github/downloads/Mzlalal/idea-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
 </p>
 
 **Lite Note** is a lightweight notes application combining a Markdown editor, an AI assistant, code execution, content encryption, and Git synchronization. Available for Windows, macOS, and Linux.

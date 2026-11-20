@@ -12,14 +12,14 @@
   <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux" />
 </p>
 <p align="center">
-  <a href="https://github.com/Liubsyy/idea-note/releases/latest"><img src="https://img.shields.io/github/v/release/Liubsyy/idea-note?display_name=tag&style=flat-square&logo=github&label=version&color=0ea5e9" alt="Latest release" /></a>
-  <a href="https://github.com/Liubsyy/idea-note/releases"><img src="https://img.shields.io/github/downloads/Liubsyy/idea-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
+  <a href="https://github.com/Mzlalal/idea-note/releases/latest"><img src="https://img.shields.io/github/v/release/Mzlalal/idea-note?display_name=tag&style=flat-square&logo=github&label=version&color=0ea5e9" alt="Latest release" /></a>
+  <a href="https://github.com/Mzlalal/idea-note/releases"><img src="https://img.shields.io/github/downloads/Mzlalal/idea-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
 </p>
 
 **Lite Note** 是一款轻量简洁的笔记应用，集Markdown编辑器、AI 助手、代码运行、内容加密与 Git 同步于一体，支持 Windows、MacOS 和 Linux 平台。
 
 
-![](./doc/assets/sample1.png)
+![Lite Note Windows 版编辑器，展示文件列表、待办和 Markdown 表格](./doc/assets/sample1.png)
 
 
 
