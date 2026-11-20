@@ -1,6 +1,6 @@
 import { tr } from "../../i18n/core.ts";
 import { useLanguage } from "../../i18n/react";
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import {
   ChevronRight,
   ChevronDown,
@@ -60,6 +60,35 @@ function formatNoteTime(mtime?: number | null): string | null {
   if (d.getFullYear() === now.getFullYear())
     return tr("{{0}}月{{1}}日", { 0: d.getMonth() + 1, 1: d.getDate() });
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+const minuteMs = 60_000;
+const clockListeners = new Set<() => void>();
+let clockTimer: ReturnType<typeof setInterval> | undefined;
+
+function subscribeToClock(listener: () => void) {
+  clockListeners.add(listener);
+  clockTimer ??= setInterval(() => {
+    for (const notify of clockListeners) notify();
+  }, minuteMs);
+  return () => {
+    clockListeners.delete(listener);
+    if (!clockListeners.size) {
+      clearInterval(clockTimer);
+      clockTimer = undefined;
+    }
+  };
+}
+
+const currentMinute = () => Math.floor(Date.now() / minuteMs);
+
+function formatNoteAge(createdAt: number): string {
+  const minutes = Math.floor((Date.now() - createdAt) / minuteMs);
+  if (minutes < 1) return tr("刚刚");
+  if (minutes < 60) return tr("{{0}} 分钟前", { 0: minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return tr("{{0}} 小时前", { 0: hours });
+  return tr("{{0}} 天前", { 0: Math.floor(hours / 24) });
 }
 
 interface FoldedFolder {
@@ -360,7 +389,9 @@ export function NoteCard({
     ? selectedPaths.includes(node.path)
     : selectedPath === node.path;
   const isDragging = drag?.draggingPaths.includes(node.path) ?? false;
-  const time = formatNoteTime(noteCreationTime(node));
+  useSyncExternalStore(subscribeToClock, currentMinute);
+  const createdAt = noteCreationTime(node);
+  const time = formatNoteTime(createdAt);
 
   return (
     <div
@@ -409,7 +440,7 @@ export function NoteCard({
           {excerpt}
         </div>
       )}
-      {time && (
+      {time && createdAt !== null && (
         <div
           style={{
             fontSize: "max(0.8em, 11px)",
@@ -417,7 +448,7 @@ export function NoteCard({
             marginTop: 3,
           }}
         >
-          {time}
+          {time} ({formatNoteAge(createdAt)})
         </div>
       )}
     </div>
