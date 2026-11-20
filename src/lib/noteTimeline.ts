@@ -1,5 +1,21 @@
 import type { FileNode } from "./fs";
 
+export function noteCreationTime(note: FileNode): number | null {
+  const stamp = /^(\d{4})(\d{2})(\d{2})[-_](\d{2})(\d{2})(\d{2})\.(?:md|markdown)$/i.exec(note.name);
+  if (stamp) {
+    const [year, month, day, hour, minute, second] = stamp.slice(1).map(Number);
+    const date = new Date(year, month - 1, day, hour, minute, second);
+    if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+      && hour < 24 && minute < 60 && second < 60) return date.getTime();
+  }
+  return note.created_at ?? note.mtime ?? null;
+}
+
+export function newestNoteFirst(left: FileNode, right: FileNode): number {
+  return (noteCreationTime(right) ?? -Infinity) - (noteCreationTime(left) ?? -Infinity)
+    || left.path.localeCompare(right.path);
+}
+
 export function groupNotesByDate(nodes: FileNode[]) {
   const groups = new Map<string, FileNode[]>();
   const visit = (entries: FileNode[]) => {
@@ -9,13 +25,8 @@ export function groupNotesByDate(nodes: FileNode[]) {
         continue;
       }
 
-      const stamp = /^(\d{4})(\d{2})(\d{2})[-_]\d{6}\.(?:md|markdown)$/i.exec(note.name);
-      const date = stamp
-        ? new Date(Number(stamp[1]), Number(stamp[2]) - 1, Number(stamp[3]))
-        : null;
-      const validStamp = date && date.getFullYear() === Number(stamp?.[1])
-        && date.getMonth() + 1 === Number(stamp?.[2]) && date.getDate() === Number(stamp?.[3]);
-      const day = validStamp ? date : note.mtime == null ? null : new Date(note.mtime);
+      const created = noteCreationTime(note);
+      const day = created == null ? null : new Date(created);
       const key = day && Number.isFinite(day.getTime())
         ? [day.getFullYear(), day.getMonth() + 1, day.getDate()].map((part) => String(part).padStart(2, "0")).join(".")
         : "";
@@ -27,6 +38,6 @@ export function groupNotesByDate(nodes: FileNode[]) {
   visit(nodes);
   return [...groups].sort(([left], [right]) => right.localeCompare(left)).map(([date, notes]) => ({
     date,
-    notes: notes.sort((left, right) => right.name.localeCompare(left.name, undefined, { numeric: true }) || left.path.localeCompare(right.path)),
+    notes: notes.sort(newestNoteFirst),
   }));
 }

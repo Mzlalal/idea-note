@@ -13,7 +13,7 @@ import {
 import { isMarkdownFile, dirname, type FileNode } from "../../lib/fs";
 import { useAppStore, type NotesViewMode } from "../../store/useAppStore";
 import { TreeDragProvider, useTreeDrag } from "./treeDrag";
-import { groupNotesByDate } from "../../lib/noteTimeline";
+import { groupNotesByDate, newestNoteFirst, noteCreationTime } from "../../lib/noteTimeline";
 import { useNoteExcerpt } from "../../lib/noteExcerpts";
 
 interface Props {
@@ -32,7 +32,8 @@ export function filterNotesTree(nodes: FileNode[]): FileNode[] {
       result.push(node);
     }
   }
-  return result;
+  return result.sort((left, right) => Number(right.is_dir) - Number(left.is_dir)
+    || (left.is_dir ? left.name.localeCompare(right.name) : newestNoteFirst(left, right)));
 }
 
 const noteName = (name: string) => name.replace(/\.(md|markdown)$/i, "");
@@ -89,7 +90,7 @@ function foldSingleFolderChain(node: FileNode): FoldedFolder {
  * Sidebar notes mode: only markdown notes, shown without their extension.
  * Layouts are toggled in the header row:
  *  - "cards": Bear-style note cards (title + excerpt + time) sorted by
- *    modification time, folders as collapsible group headings;
+ *    creation time, folders as collapsible group headings;
  *  - "tree": the folder hierarchy, each note as a two-line row.
  *  - "timeline": individual notes grouped by date.
  */
@@ -359,7 +360,7 @@ export function NoteCard({
     ? selectedPaths.includes(node.path)
     : selectedPath === node.path;
   const isDragging = drag?.draggingPaths.includes(node.path) ?? false;
-  const time = formatNoteTime(node.mtime);
+  const time = formatNoteTime(noteCreationTime(node));
 
   return (
     <div
@@ -552,7 +553,7 @@ function NoteRow({
     ? selectedPaths.includes(node.path)
     : selectedPath === node.path;
   const isDragging = drag?.draggingPaths.includes(node.path) ?? false;
-  const time = formatNoteTime(node.mtime);
+  const time = formatNoteTime(noteCreationTime(node));
   const NoteIcon = node.is_symlink ? FileSymlink : StickyNote;
 
   return (

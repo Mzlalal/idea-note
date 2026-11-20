@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { tr } from "../../i18n/core";
 import { NoteCard } from "./NotesTree";
 import { TreeDragProvider } from "./treeDrag";
+import { newestNoteFirst } from "../../lib/noteTimeline";
 import type { FileNode } from "../../lib/fs";
 
 export function TagNotes({ nodes, onContextMenu }: {
@@ -25,6 +26,7 @@ export function TagNotes({ nodes, onContextMenu }: {
       }
     };
     visit(nodes);
+    for (const notes of groups.values()) notes.sort(newestNoteFirst);
     return new Map([...groups].sort(([left], [right]) => left.localeCompare(right)));
   }, [nodes]);
   const active = groups.has(selected) ? selected : groups.keys().next().value;

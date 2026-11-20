@@ -110,6 +110,8 @@ pub struct FileNode {
     children: Option<Vec<FileNode>>,
     /// Last-modified time in epoch milliseconds (files only).
     mtime: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    created_at: Option<u64>,
     /// First content line of a markdown note — the sidebar notes-mode preview.
     excerpt: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -289,6 +291,7 @@ fn read_tree_inner(dir: &Path, visited: &mut HashSet<PathBuf>) -> Result<Vec<Fil
                 is_dir: true,
                 children: Some(children),
                 mtime: None,
+                created_at: None,
                 excerpt: None,
                 tags: Vec::new(),
                 is_symlink,
@@ -305,6 +308,7 @@ fn read_tree_inner(dir: &Path, visited: &mut HashSet<PathBuf>) -> Result<Vec<Fil
                 is_dir: false,
                 children: None,
                 mtime: file_mtime_ms(&metadata),
+                created_at: None,
                 excerpt,
                 tags: Vec::new(),
                 is_symlink,
@@ -355,6 +359,7 @@ fn read_directory(dir: &Path) -> Result<Vec<FileNode>, String> {
             } else {
                 file_mtime_ms(&metadata)
             },
+            created_at: None,
             excerpt: None,
                 tags: Vec::new(),
             is_symlink,
@@ -423,6 +428,7 @@ fn read_notes_index(dir: &Path, cancelled: &AtomicBool) -> Result<Vec<FileNode>,
                     is_dir: true,
                     children: Some(children),
                     mtime: None,
+                    created_at: None,
                     excerpt: None,
                     tags: Vec::new(),
                     is_symlink: false,
@@ -442,6 +448,9 @@ fn read_notes_index(dir: &Path, cancelled: &AtomicBool) -> Result<Vec<FileNode>,
                 is_dir: false,
                 children: None,
                 mtime: file_mtime_ms(&metadata),
+                created_at: metadata.created().ok()
+                    .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|duration| duration.as_millis() as u64),
                 excerpt: None,
                 tags: read_note_tags(&path),
                 is_symlink: kind.is_symlink(),

@@ -13,6 +13,7 @@ export interface FileNode {
   children?: FileNode[] | null;
   /** Last-modified time in epoch milliseconds (files only). */
   mtime?: number | null;
+  created_at?: number | null;
   /** First content line of a markdown note (sidebar notes-mode preview). */
   excerpt?: string | null;
   tags?: string[];
