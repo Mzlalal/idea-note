@@ -368,6 +368,16 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isMac) return;
+    const unlisten = getCurrentWindow().listen<string>("launcher:open-document", ({ payload }) => {
+      void openExternalFile(payload).catch((error) =>
+        useAppStore.getState().showToast(tr("无法打开文档：{{0}}", { 0: String(error) }), "error"),
+      );
+    });
+    return () => { void unlisten.then((fn) => fn()); };
+  }, []);
+
   // Pick up edits made to the open file by other programs: when the window
   // regains focus, stat it and reload if it changed on disk (silent when clean,
   // prompt when there are unsaved edits). No filesystem watcher, so focus is the

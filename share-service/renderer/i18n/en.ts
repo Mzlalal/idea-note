@@ -1,5 +1,18 @@
 // Chinese source keys keep the original interface available as a complete fallback.
 export default {
+  "无法打开文档：{{0}}": "Could not open the document: {{0}}",
+  "macOS 面板设置失败：{{0}}": "Could not update macOS panel settings: {{0}}",
+  "应用启动台": "App Launcher",
+  "双击 ⌘ 显示或隐藏": "Press Command twice to show or hide",
+  "剪贴板历史": "Clipboard History",
+  "按 ⌘⇧V 显示或隐藏": "Press Command–Shift–V to show or hide",
+  "在 Dock 中显示": "Show in Dock",
+  "同时在 ⌘Tab 应用切换器中显示": "Also show in the Command–Tab app switcher",
+  "输入监控": "Input Monitoring",
+  "允许双击 Control 切换记事本、双击 ⌘ 切换启动台": "Allow double-pressing Control to toggle notes and Command to toggle the launcher",
+  "打开系统设置": "Open System Settings",
+  "辅助功能": "Accessibility",
+  "允许将剪贴板记录粘贴回原应用": "Allow pasting clipboard history back into the original app",
   "打开 Lite Note": "Open Lite Note",
   "退出 Lite Note": "Quit Lite Note",
   "双击 Ctrl 显示或隐藏窗口": "Double-tap Ctrl to show or hide the window",

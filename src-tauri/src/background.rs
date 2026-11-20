@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::sync::Mutex;
 
 use tauri::menu::{Menu, MenuItem};
+#[cfg(target_os = "macos")]
+use tauri::menu::IsMenuItem;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow, Wry};
 
@@ -27,6 +29,25 @@ struct TrayMenu {
 pub fn install(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "tray-open", "Open Lite Note", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "tray-quit", "Quit Lite Note", true, None::<&str>)?;
+    #[cfg(target_os = "macos")]
+    let panel_entries = if crate::macos_panels::supported() {
+        Some((
+            MenuItem::with_id(app, "tray-launcher", "应用启动台", true, None::<&str>)?,
+            MenuItem::with_id(app, "tray-clipboard", "剪贴板", true, None::<&str>)?,
+        ))
+    } else {
+        None
+    };
+    #[cfg(target_os = "macos")]
+    let menu = {
+        let mut entries: Vec<&dyn IsMenuItem<Wry>> = vec![&open];
+        if let Some((launcher, clipboard)) = &panel_entries {
+            entries.extend([launcher as &dyn IsMenuItem<Wry>, clipboard]);
+        }
+        entries.push(&quit);
+        Menu::with_items(app, &entries)?
+    };
+    #[cfg(target_os = "windows")]
     let menu = Menu::with_items(app, &[&open, &quit])?;
     let mut tray = TrayIconBuilder::with_id("lite-note")
         .tooltip("Lite Note")
@@ -34,6 +55,10 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(cfg!(target_os = "macos"))
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray-open" => show_last_window(app),
+            #[cfg(target_os = "macos")]
+            "tray-launcher" => crate::macos_panels::toggle(app, 0),
+            #[cfg(target_os = "macos")]
+            "tray-clipboard" => crate::macos_panels::toggle(app, 1),
             "tray-quit" => request_quit(app),
             _ => {}
         })
@@ -91,13 +116,17 @@ pub fn show_last_window(app: &AppHandle) {
     }
 }
 
-#[cfg(target_os = "windows")]
 pub fn toggle_window(app: &AppHandle) {
     let focused = app.webview_windows().into_values().find(|window| {
         project_tabs::is_project_window(window.label())
             && window.is_visible().unwrap_or(false)
             && !window.is_minimized().unwrap_or(false)
-            && crate::double_ctrl::is_foreground(window)
+            && {
+                #[cfg(target_os = "windows")]
+                { crate::double_ctrl::is_foreground(window) }
+                #[cfg(target_os = "macos")]
+                { window.is_focused().unwrap_or(false) }
+            }
     });
     if let Some(window) = focused {
         let _ = window.close(); // Flush through the usual close-to-tray path.

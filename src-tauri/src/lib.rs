@@ -21,6 +21,8 @@ mod git;
 mod html_preview;
 #[cfg(target_os = "macos")]
 mod menu;
+#[cfg(target_os = "macos")]
+mod macos_panels;
 mod open_with;
 mod print;
 mod proc;
@@ -60,6 +62,8 @@ pub fn run() {
         background::install(app.handle())?;
         #[cfg(target_os = "windows")]
         double_ctrl::install(app.handle());
+        #[cfg(target_os = "macos")]
+        macos_panels::install(app.handle());
         Ok(())
     });
 
@@ -169,6 +173,12 @@ pub fn run() {
         .manage(vault)
         .manage(pending)
         .invoke_handler(tauri::generate_handler![
+            #[cfg(target_os = "macos")]
+            macos_panels::macos_panel_settings,
+            #[cfg(target_os = "macos")]
+            macos_panels::set_macos_panel_setting,
+            #[cfg(target_os = "macos")]
+            macos_panels::request_macos_panel_permission,
             #[cfg(any(target_os = "windows", target_os = "macos"))]
             background::register_background_window,
             #[cfg(any(target_os = "windows", target_os = "macos"))]

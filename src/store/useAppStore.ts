@@ -12,7 +12,7 @@ import {
   type ActiveFormats,
   emptyFormats,
 } from "../lib/codemirror/activeFormats";
-import { isWindows } from "../lib/platform";
+import { isMac, isWindows } from "../lib/platform";
 import {
   currentProjectGroup,
   PROJECT_TAB_CLOSE_EVENT,
@@ -3337,7 +3337,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       width: 720,
       height: 460,
       resizable: false,
-      decorations: false,
+      decorations: isMac,
+      ...(isMac ? { titleBarStyle: "overlay" as const, hiddenTitle: true } : {}),
       center: true,
     });
   },

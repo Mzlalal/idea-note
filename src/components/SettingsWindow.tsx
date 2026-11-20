@@ -266,7 +266,7 @@ export function SettingsWindow() {
       >
         <div
           data-tauri-drag-region
-          className="flex h-[52px] shrink-0 select-none items-end px-4 pb-2"
+          className={`flex shrink-0 select-none items-end px-4 pb-2 ${isMac ? "h-[64px]" : "h-[52px]"}`}
         >
           <span className="text-[13px] font-semibold tracking-wide" style={{ color: "var(--text)" }}>
             {tr("设置")}</span>
@@ -330,6 +330,7 @@ export function SettingsWindow() {
                   </select>
                 </Row>
                 {(isWindows || isMac) && <LaunchAtLoginSetting />}
+                {isMac && <MacPanelSettings />}
               </Card>
               <ThemeSection
                 themeId={themeId}
@@ -3116,6 +3117,79 @@ function StepButton({
     >
       {children}
     </button>
+  );
+}
+
+type MacPanelPreferences = {
+  launcherEnabled: boolean;
+  clipboardEnabled: boolean;
+  showInDock: boolean;
+  inputMonitoring: boolean;
+  accessibility: boolean;
+  shortcutError?: string;
+};
+
+function MacPanelSettings() {
+  const [preferences, setPreferences] = useState<MacPanelPreferences | null>(null);
+  const [saving, setSaving] = useState(false);
+  const showToast = useAppStore((state) => state.showToast);
+  const report = useCallback((error: unknown) => {
+    showToast(tr("macOS 面板设置失败：{{0}}", { 0: String(error) }), "error");
+  }, [showToast]);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      void invoke<MacPanelPreferences | null>("macos_panel_settings").then((value) => {
+        if (active) setPreferences(value);
+      }).catch((error) => { if (active) report(error); });
+    };
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refresh);
+    };
+  }, [report]);
+
+  async function update(setting: number, enabled: boolean) {
+    setSaving(true);
+    try {
+      setPreferences(await invoke<MacPanelPreferences>("set_macos_panel_setting", { setting, enabled }));
+    } catch (error) {
+      report(error);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!preferences) return null;
+  return (
+    <>
+      <Row title={tr("应用启动台")} desc={tr("双击 ⌘ 显示或隐藏")}>
+        <Toggle checked={preferences.launcherEnabled} disabled={saving} onChange={(enabled) => update(0, enabled)} />
+      </Row>
+      <Row title={tr("剪贴板历史")} desc={preferences.shortcutError ?? tr("按 ⌘⇧V 显示或隐藏")}>
+        <Toggle checked={preferences.clipboardEnabled} disabled={saving} onChange={(enabled) => update(1, enabled)} />
+      </Row>
+      <Row title={tr("在 Dock 中显示")} desc={tr("同时在 ⌘Tab 应用切换器中显示")}>
+        <Toggle checked={preferences.showInDock} disabled={saving} onChange={(enabled) => update(2, enabled)} />
+      </Row>
+      {!preferences.inputMonitoring && (
+        <Row title={tr("输入监控")} desc={tr("允许双击 Control 切换记事本、双击 ⌘ 切换启动台")}>
+          <TextButton onClick={() => void invoke("request_macos_panel_permission", { input: true }).catch(report)}>
+            {tr("打开系统设置")}
+          </TextButton>
+        </Row>
+      )}
+      {!preferences.accessibility && preferences.clipboardEnabled && (
+        <Row title={tr("辅助功能")} desc={tr("允许将剪贴板记录粘贴回原应用")}>
+          <TextButton onClick={() => void invoke("request_macos_panel_permission", { input: false }).catch(report)}>
+            {tr("打开系统设置")}
+          </TextButton>
+        </Row>
+      )}
+    </>
   );
 }
 

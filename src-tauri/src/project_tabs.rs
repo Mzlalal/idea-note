@@ -282,6 +282,13 @@ pub fn reveal<R: Runtime>(app: &AppHandle<R>, label: &str) {
     let _ = activate(app, label);
 }
 
+#[cfg(target_os = "macos")]
+pub fn window_workspace(app: &AppHandle, label: &str) -> Option<String> {
+    app.state::<ProjectTabs>().lock().members.iter()
+        .find(|member| member.label == label)
+        .and_then(|member| member.workspace.clone())
+}
+
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 pub fn last_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
     let state = app.state::<ProjectTabs>();
