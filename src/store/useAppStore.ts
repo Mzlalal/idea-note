@@ -294,6 +294,7 @@ const RIGHT_PANEL_MAX_RATIO = 0.9;
 export interface PromptRequest {
   title: string;
   defaultValue: string;
+  suffix?: string;
   fields?: Array<{
     name: string;
     label: string;
@@ -641,7 +642,7 @@ interface AppState {
   setDoubleCtrlActivation: (on: boolean) => Promise<void>;
   requestNewRawFile: (dir?: string) => void;
   requestNewFolder: (dir?: string) => void;
-  requestRename: (path: string) => void;
+  requestRename: (path: string, isDirectory?: boolean) => void;
   closePrompt: () => void;
   closeGitCredentialPrompt: () => void;
   openConfirm: (req: ConfirmRequest) => void;
@@ -3256,12 +3257,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  requestRename: (path) => {
+  requestRename: (path, isDirectory = false) => {
+    const filename = basename(path);
+    const suffix = isDirectory ? undefined : filename.match(/(?<=.)\.(?:md|markdown)$/i)?.[0];
     set({
       prompt: {
         title: tr("重命名"),
-        defaultValue: basename(path),
-        onSubmit: (name) => get().rename(path, name),
+        defaultValue: suffix ? filename.slice(0, -suffix.length) : filename,
+        suffix,
+        onSubmit: (name) => get().rename(path, suffix ? name.trim() + suffix : name),
       },
     });
   },
