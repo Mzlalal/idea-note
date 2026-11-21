@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.3.2
+
+**简体中文**
+
+- 双击笔记标签页即可重命名，文件名和后缀可分别编辑。修复输入法选词误触发保存的问题。
+- 删除确认支持回车，并显示 ↵ 提示。启动草稿标签显示 .md，时间轴增加更多日期分组表情。
+- 修复快捷键录制。手动同步默认使用 ⌘K / Ctrl+K，立即同步使用 ⌘⇧K / Ctrl+Shift+K。
+- 修复连续重命名后手动提交报路径不存在的问题。
+- 支持纯文本文件关联，库外文件的标签页显示蓝色「外部」标记。
+
+**English**
+
+- Double-click a note tab to rename it. Edit the filename and extension separately. IME candidate confirmation no longer submits the rename.
+- Press Enter to confirm deletion. Startup draft tabs show .md, and date groups use a wider range of emoji.
+- Fixed shortcut recording. Manual sync defaults to Command/Ctrl+K, and immediate sync defaults to Command/Ctrl+Shift+K.
+- Fixed manual commits failing when a file was renamed more than once.
+- Added plain-text file association and a blue External badge for files outside the workspace.
+
 ## 1.3.1
 
 **简体中文**
