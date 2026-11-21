@@ -15,6 +15,7 @@ export function PromptModal() {
   const closePrompt = useAppStore((s) => s.closePrompt);
 
   const [value, setValue] = useState("");
+  const [suffix, setSuffix] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,6 +27,7 @@ export function PromptModal() {
     if (!prompt) return;
     composing.current = false;
     setValue(prompt.defaultValue);
+    setSuffix(prompt.suffix ?? "");
     setValues(
       Object.fromEntries(
         (prompt.fields ?? []).map((field) => [
@@ -63,7 +65,9 @@ export function PromptModal() {
     setBusy(true);
     setError(null);
     try {
-      await prompt.onSubmit(value, values);
+      const extension = suffix.trim().replace(/^\.+/, "");
+      const name = prompt.suffix && extension ? `${value.trim()}.${extension}` : value;
+      await prompt.onSubmit(name, values);
       closePrompt();
     } catch (e) {
       setError(typeof e === "string" ? e : (e as Error)?.message ?? tr("操作失败"));
@@ -220,9 +224,13 @@ export function PromptModal() {
               }}
             />
             {prompt.suffix && (
-              <span className="shrink-0 rounded-md border border-[var(--border)] px-2.5 py-1.5 text-sm text-[var(--text-muted)]">
-                {prompt.suffix}
-              </span>
+              <input
+                aria-label={tr("扩展名")}
+                value={suffix}
+                onChange={(e) => setSuffix(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                className="w-24 shrink-0 rounded-md border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1.5 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+              />
             )}
           </div>
         )}

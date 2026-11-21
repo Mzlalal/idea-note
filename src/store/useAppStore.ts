@@ -3265,7 +3265,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         title: tr("重命名"),
         defaultValue: suffix ? filename.slice(0, -suffix.length) : filename,
         suffix,
-        onSubmit: (name) => get().rename(path, suffix ? name.trim() + suffix : name),
+        onSubmit: (name) => get().rename(path, name),
       },
     });
   },
