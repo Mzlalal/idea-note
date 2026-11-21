@@ -93,7 +93,7 @@ export const EDITOR_COMMANDS: EditorCommandDef[] = [
   { id: "copyLineDown", get label() { return tr("向下复制行"); }, get desc() { return tr("复制当前行并插入到下方"); }, defaultKey: "Shift-Alt-ArrowDown", run: copyLineDown, group: "general" },
   { id: "moveLineUp", get label() { return tr("上移当前行"); }, get desc() { return tr("把当前行与上一行互换"); }, defaultKey: "Alt-ArrowUp", run: moveLineUp, group: "general" },
   { id: "moveLineDown", get label() { return tr("下移当前行"); }, get desc() { return tr("把当前行与下一行互换"); }, defaultKey: "Alt-ArrowDown", run: moveLineDown, group: "general" },
-  { id: "deleteLine", get label() { return tr("删除整行"); }, get desc() { return tr("删除光标所在行"); }, defaultKey: "Shift-Mod-k", run: deleteLine, group: "general" },
+  { id: "deleteLine", get label() { return tr("删除整行"); }, get desc() { return tr("删除光标所在行"); }, defaultKey: "Mod-Alt-Shift-k", run: deleteLine, group: "general" },
   { id: "indentMore", get label() { return tr("增加缩进"); }, get desc() { return tr("向右缩进所选行"); }, defaultKey: "Mod-]", run: indentMore, group: "general" },
   { id: "indentLess", get label() { return tr("减少缩进"); }, get desc() { return tr("向左缩进所选行"); }, defaultKey: "Mod-[", run: indentLess, group: "general" },
   { id: "toggleComment", get label() { return tr("注释/取消注释"); }, get desc() { return tr("切换当前行或选区的注释"); }, defaultKey: "Mod-/", run: toggleComment, group: "general" },
@@ -123,7 +123,7 @@ export const EDITOR_COMMANDS: EditorCommandDef[] = [
   { id: "markdownDetailsBlock", get label() { return tr("折叠块"); }, get desc() { return tr("插入折叠块或包裹所选内容"); }, defaultKey: "Mod-Alt-Shift-d", run: MARKDOWN_ACTIONS.markdownDetailsBlock, group: "markdown" },
   { id: "markdownCodeBlock", get label() { return tr("代码块"); }, get desc() { return tr("插入代码块"); }, defaultKey: "Mod-Alt-c", run: MARKDOWN_ACTIONS.markdownCodeBlock, group: "markdown" },
   { id: "markdownHr", get label() { return tr("分割线"); }, get desc() { return tr("插入水平分割线"); }, defaultKey: "Mod-Alt-h", run: MARKDOWN_ACTIONS.markdownHr, group: "markdown" },
-  { id: "markdownLink", get label() { return tr("链接"); }, get desc() { return tr("插入 Markdown 链接"); }, defaultKey: "Mod-k", run: MARKDOWN_ACTIONS.markdownLink, group: "markdown" },
+  { id: "markdownLink", get label() { return tr("链接"); }, get desc() { return tr("插入 Markdown 链接"); }, defaultKey: "Mod-Alt-k", run: MARKDOWN_ACTIONS.markdownLink, group: "markdown" },
   { id: "markdownImage", get label() { return tr("图片"); }, get desc() { return tr("插入 Markdown 图片"); }, defaultKey: "Mod-Alt-i", run: MARKDOWN_ACTIONS.markdownImage, group: "markdown" },
   { id: "markdownTable", get label() { return tr("表格"); }, get desc() { return tr("插入 Markdown 表格"); }, defaultKey: "Mod-Alt-t", run: MARKDOWN_ACTIONS.markdownTable, group: "markdown" },
   { id: "markdownMathBlock", get label() { return tr("数学公式"); }, get desc() { return tr("插入块级数学公式"); }, defaultKey: "Mod-Alt-m", run: MARKDOWN_ACTIONS.markdownMathBlock, group: "markdown" },
@@ -141,8 +141,8 @@ export const EDITOR_COMMANDS: EditorCommandDef[] = [
  * override map (and conflict checks) with the editor commands.
  */
 export const SYNC_COMMANDS: ShortcutDef[] = [
-  { id: "syncNow", get label() { return tr("立即同步"); }, get desc() { return tr("提交当前改动并同步仓库"); }, defaultKey: "Mod-Alt-s" },
-  { id: "manualSync", get label() { return tr("手动同步"); }, get desc() { return tr("选择要提交的文件并编辑提交文案"); }, defaultKey: "Mod-Alt-Shift-s" },
+  { id: "syncNow", get label() { return tr("立即同步"); }, get desc() { return tr("提交当前改动并同步仓库"); }, defaultKey: "Mod-Shift-k" },
+  { id: "manualSync", get label() { return tr("手动同步"); }, get desc() { return tr("选择要提交的文件并编辑提交文案"); }, defaultKey: "Mod-k" },
   { id: "openHistory", get label() { return tr("历史记录"); }, get desc() { return tr("查看当前文件或项目的历史记录"); }, defaultKey: "Mod-Alt-y" },
   { id: "branchManager", get label() { return tr("分支管理"); }, get desc() { return tr("查看和管理本地及远程分支"); }, defaultKey: "Mod-Alt-b" },
 ];

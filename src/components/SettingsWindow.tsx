@@ -810,7 +810,10 @@ function KeyRecorder({
 
   return (
     <button
-      onClick={() => setRecording((r) => !r)}
+      onClick={(e) => {
+        e.currentTarget.focus();
+        setRecording((r) => !r);
+      }}
       onKeyDown={onKeyDown}
       onBlur={() => setRecording(false)}
       title={conflict ? tr("该组合键与其它命令冲突") : tr("点击后按下快捷键")}
