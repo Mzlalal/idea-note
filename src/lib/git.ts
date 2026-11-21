@@ -619,10 +619,15 @@ export async function stageOnly(dir: string, paths: string[]): Promise<void> {
   // Pathspecs are root-relative (as listWorkingChanges returns them).
   const root = await getRepoRoot(dir);
   const selected = new Set(paths);
-  const keepAdded = (await listAddedPaths(root)).filter((path) => !selected.has(path));
+  const added = await listAddedPaths(root);
+  const missing = new Set((await gitOk(root, ["ls-files", "--deleted", "-z"])).stdout.split("\0"));
+  // A staged addition that has since been removed has no HEAD entry to
+  // restore during reset (for example, the middle name in a chained rename).
+  const vanished = new Set(added.filter((path) => missing.has(path)));
+  const keepAdded = added.filter((path) => !selected.has(path) && !vanished.has(path));
   await gitOk(root, (await hasCommits(root)) ? ["reset", "-q"] : ["read-tree", "--empty"]);
   await gitPaths(root, ["add", "-N"], keepAdded);
-  await gitPaths(root, ["add", "-A"], paths);
+  await gitPaths(root, ["add", "-A"], paths.filter((path) => !vanished.has(path)));
 }
 
 /** 添加到 Git: mark untracked `paths` (relative to `dir`) as added, so syncs

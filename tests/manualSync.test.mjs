@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -250,4 +250,22 @@ test('first sync with an empty index returns guidance without staging untracked 
   assert.equal(result.ok, true, result.message);
   assert.match(result.message, /手动同步/);
   assert.equal(git(workspace, 'ls-files'), '');
+});
+
+test('manual commit stages both ends of a chained rename without staging the vanished middle path', async t => {
+  const { git, api, local, selected, unchecked } = fixture(t);
+  const intermediate = 'notes/修改中.md';
+  const finalPath = 'notes/最终笔记.md';
+  git(local, 'mv', '--', selected, intermediate);
+  renameSync(join(local, intermediate), join(local, finalPath));
+  await api.addUntracked(local, [finalPath]);
+  writeFileSync(join(local, unchecked), 'unchecked edit\n');
+
+  const { changes } = await api.listCommitCandidates(local);
+  const paths = api.changePaths(changes.filter(change => change.path !== unchecked));
+  assert.ok(paths.includes(intermediate));
+  assert.equal(await api.commitSelected(local, paths, 'rename note'), true);
+  assert.equal(git(local, 'show', `HEAD:${finalPath}`), 'base\n');
+  assert.equal(git(local, 'show', `HEAD:${unchecked}`), 'original unchecked\n');
+  assert.equal(git(local, 'status', '--porcelain').trim(), 'M unchecked.md');
 });
