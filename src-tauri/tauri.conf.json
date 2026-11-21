@@ -40,6 +40,14 @@
         "description": "Markdown files",
         "mimeType": "text/markdown",
         "role": "Editor"
+      },
+      {
+        "ext": ["txt"],
+        "name": "Lite Note Plain Text Document",
+        "description": "Plain text files",
+        "mimeType": "text/plain",
+        "role": "Editor",
+        "rank": "Alternate"
       }
     ],
     "macOS": {
