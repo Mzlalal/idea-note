@@ -344,6 +344,7 @@ export interface ConfirmRequest {
   /** Label of the primary action button, e.g. "删除". */
   confirmLabel: string;
   onConfirm: () => void | Promise<void>;
+  confirmOnEnter?: boolean;
   /** Primary button color: destructive red unless set to "primary" (accent). */
   tone?: "danger" | "primary";
   /** Optional second action button (neutral styling), e.g. "新窗口". */
@@ -3171,6 +3172,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ? tr("确定删除「{{0}}」？此操作不可撤销。", { 0: basename(roots[0]) })
             : tr("确定删除选中的 {{0}} 个项目？此操作不可撤销。", { 0: roots.length }),
         confirmLabel: tr("删除"),
+        confirmOnEnter: true,
         onConfirm: () => get().removeManyNow(roots),
       },
     });
