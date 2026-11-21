@@ -895,7 +895,10 @@ export const isDraftPath = (p: string | null | undefined): p is string =>
   !!p && p.startsWith(DRAFT_PREFIX);
 const timestampDraftName = (path: string) =>
   /^untitled:\/\/(\d{8}-\d{6})$/.exec(path)?.[1];
-export const draftTitle = (path: string) => timestampDraftName(path) ?? tr("未命名");
+export const draftTitle = (path: string) => {
+  const stamp = timestampDraftName(path);
+  return stamp ? `${stamp}.md` : tr("未命名");
+};
 
 function noteTimestamp(date = new Date()): string {
   const pad = (part: number) => String(part).padStart(2, "0");
