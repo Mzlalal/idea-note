@@ -3,7 +3,7 @@ import { useLanguage } from "../../i18n/react";
 import { ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { draftTitle, isDraftPath, useAppStore } from "../../store/useAppStore";
-import { basename, isImageFile } from "../../lib/fs";
+import { basename, isImageFile, isMarkdownFile } from "../../lib/fs";
 import { copyFileToClipboard, copyText, relativePath } from "../../lib/clipboard";
 
 /**
@@ -23,6 +23,7 @@ export function EditorTabs() {
   const activeFilePath = useAppStore((s) => s.activeFilePath);
   const isDirty = useAppStore((s) => s.isDirty);
   const openFile = useAppStore((s) => s.openFile);
+  const requestRename = useAppStore((s) => s.requestRename);
   const closeTab = useAppStore((s) => s.closeTab);
   const closeOtherTabs = useAppStore((s) => s.closeOtherTabs);
   const closeAllTabs = useAppStore((s) => s.closeAllTabs);
@@ -175,6 +176,9 @@ export function EditorTabs() {
                   }
                   if (!active) void openFile(path);
                 }}
+                onDoubleClick={() => {
+                  if (!draft && isMarkdownFile(path)) requestRename(path);
+                }}
                 onMouseDown={(e) => {
                   // Middle-click closes the tab (standard browser/editor gesture).
                   if (e.button === 1) {
@@ -216,6 +220,7 @@ export function EditorTabs() {
                   // ensuing click to the capturing tab, so this button's onClick
                   // would never fire (WebKit doesn't retarget, hence mac worked).
                   onPointerDown={(e) => e.stopPropagation()}
+                  onDoubleClick={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     void closeTab(path);
