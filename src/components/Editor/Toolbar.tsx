@@ -23,6 +23,7 @@ import {
   ListChecks,
   Sigma,
   Workflow,
+  WandSparkles,
   ChevronRight,
   Highlighter,
   StickyNote,
@@ -32,6 +33,7 @@ import {
 
 import type { EditorView } from "@codemirror/view";
 import { md } from "../../lib/codemirror/markdownCommands";
+import { organizeMarkdown } from "../../lib/codemirror/organizeMarkdown";
 import { getActiveView } from "../../lib/codemirror/activeView";
 import { CodeComponentModal } from "./CodeComponentModal";
 import {
@@ -970,6 +972,16 @@ export function Toolbar() {
       </Btn>
       <Btn title={shortcut(tr("重做"), "redo")} onClick={() => runCommand("redo")}>
         <Redo2 size={iconSize} />
+      </Btn>
+
+      <Divider />
+
+      <Btn title={tr("整理格式")} onClick={() => run((view) => {
+        const changed = organizeMarkdown(view);
+        useAppStore.getState().showToast(changed ? tr("已整理 Markdown 格式") : tr("没有需要整理的格式"));
+        view.focus();
+      })}>
+        <WandSparkles size={iconSize} />
       </Btn>
 
       {componentOpen && (
