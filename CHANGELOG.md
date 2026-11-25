@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.3
+
+**简体中文**
+
+- 新增跟随系统主题和默认关闭的本地笔记 MCP。可复制 Codex、Claude Code 配置，并保存写入偏好。
+- 主动同步会加入工作区内未被 Git 忽略的新文件。
+- 改善笔记列表刷新、删除确认焦点及 macOS 跨应用剪贴板回贴。
+
+**English**
+
+- Added a system theme and an opt-in local notes MCP with copyable Codex and Claude Code configurations.
+- Explicit sync includes new workspace files that Git does not ignore.
+- Improved sidebar refresh, deletion dialog focus, and macOS clipboard pasting into other apps.
+
 ## 1.3.2
 
 **简体中文**
