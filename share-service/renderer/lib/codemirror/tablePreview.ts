@@ -246,6 +246,30 @@ function padCells(line: string, count: number): string {
   return (closed ? "" : " |") + "  |".repeat(count);
 }
 
+// Backtick spans and escaped tags remain literal while editing.
+function editableCell(text: string, sourceOffset = text.length) {
+  let offset = sourceOffset;
+  const value = text.replace(/(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)|\\\\|\\<|<br\s*\/?>/gi,
+    (match, _ticks, from: number) => {
+      if (!/^<br/i.test(match)) return match;
+      offset -= Math.min(match.length - 1, Math.max(0, sourceOffset - from));
+      return "\n";
+    },
+  );
+  return { value, offset };
+}
+
+function cellSourceOffset(text: string, inputOffset: number): number {
+  let low = 0;
+  let high = text.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (editableCell(text, mid).offset <= inputOffset) low = mid + 1;
+    else high = mid;
+  }
+  return editableCell(text, low).offset <= inputOffset ? low : low - 1;
+}
+
 /**
  * Keep typed text usable as one table cell: a bare `|` would split the row, and
  * a pasted newline would break the table apart. Returns the caret position
@@ -263,7 +287,7 @@ function sanitizeCellInput(
     if (i === value.length) break;
     const ch = value[i];
     if (ch === "\n" || ch === "\r") {
-      text += " ";
+      text += "<br>";
       slashes = 0;
       continue;
     }
@@ -788,14 +812,7 @@ function commitInput(host: CellHost, userEvent = "input.type"): void {
   const cleanStart = sanitizeCellInput(input.value, input.selectionStart);
   const cleanEnd = sanitizeCellInput(input.value, input.selectionEnd);
   const clean = cleanStart;
-  if (clean.text !== input.value) {
-    input.value = clean.text;
-    setInputSelection(
-      input,
-      direction === "backward" ? cleanEnd.caret : cleanStart.caret,
-      direction === "backward" ? cleanStart.caret : cleanEnd.caret,
-    );
-  }
+  if (editableCell(cell.text).value === input.value) return;
   if (clean.text === cell.text) return;
   const anchor =
     direction === "backward" ? cleanEnd.caret : cleanStart.caret;
@@ -817,8 +834,8 @@ function syncCellSelection(host: CellHost): boolean {
   if (!input || !edit || host.composing) return false;
   const cell = host.model.rows[edit.row]?.[edit.col];
   if (!cell) return false;
-  const start = Math.min(input.selectionStart, cell.text.length);
-  const end = Math.min(input.selectionEnd, cell.text.length);
+  const start = cellSourceOffset(cell.text, input.selectionStart);
+  const end = cellSourceOffset(cell.text, input.selectionEnd);
   const anchor = input.selectionDirection === "backward" ? end : start;
   const head = input.selectionDirection === "backward" ? start : end;
   const docAnchor = cell.from + anchor;
@@ -1029,6 +1046,7 @@ function onInputKey(host: CellHost, event: KeyboardEvent): void {
     return;
   }
   if (key === "Enter") {
+    if (event.shiftKey) return;
     event.preventDefault();
     const row = stepRow(model, edit.row, 1);
     if (row === null) appendRow(host, edit.col);
@@ -1040,13 +1058,13 @@ function onInputKey(host: CellHost, event: KeyboardEvent): void {
     leaveTable(host);
     return;
   }
-  // Cells are always single-line (sanitizeCellInput flattens pastes), so up and
-  // down can move between rows the way they would in a spreadsheet.
+  // Within multiline content, the textarea handles vertical caret movement.
   if (key === "ArrowUp" || key === "ArrowDown") {
+    if (input.value.includes("\n")) return;
     const row = stepRow(model, edit.row, key === "ArrowUp" ? -1 : 1);
     if (row === null) return;
     event.preventDefault();
-    startEdit(host, row, edit.col, input.selectionStart);
+    startEdit(host, row, edit.col, cellSourceOffset(model.rows[edit.row][edit.col].text, input.selectionStart));
     return;
   }
   if (key === "ArrowLeft" && atStart(input)) {
@@ -1152,7 +1170,7 @@ function layoutInput(host: CellHost): void {
   s.lineHeight = style.lineHeight;
   s.letterSpacing = style.letterSpacing;
   s.textAlign = style.textAlign;
-  s.whiteSpace = style.whiteSpace === "nowrap" ? "pre" : "pre-wrap";
+  s.whiteSpace = style.whiteSpace === "pre-wrap" || cell.classList.contains("cm-md-cell-wrap") ? "pre-wrap" : "pre";
 }
 
 /** Create, move or drop the cell editor to match the current edit state. */
@@ -1180,11 +1198,11 @@ function syncInput(host: CellHost): void {
     input.dataset.col !== String(edit.col);
   input.dataset.row = String(edit.row);
   input.dataset.col = String(edit.col);
-  const anchor = Math.min(edit.anchor, cell.text.length);
-  const head = Math.min(edit.head, cell.text.length);
+  const { value, offset: anchor } = editableCell(cell.text, Math.min(edit.anchor, cell.text.length));
+  const head = editableCell(cell.text, Math.min(edit.head, cell.text.length)).offset;
   // While composing, the textarea is ahead of the document on purpose.
-  if (!host.composing && input.value !== cell.text) {
-    input.value = cell.text;
+  if (!host.composing && input.value !== value) {
+    input.value = value;
     setInputSelection(input, anchor, head);
   }
   // Take focus only for a newly built element (the widget DOM was rebuilt under
@@ -1287,7 +1305,7 @@ function caretFromPoint(
   text: string,
   event: MouseEvent,
 ): number | null {
-  if ((cell.textContent ?? "") !== text) return null;
+  if ((cell.textContent ?? "") !== editableCell(text).value) return null;
   const doc: CaretSource = cell.ownerDocument;
   let node: Node | null = null;
   let offset = 0;
@@ -1310,7 +1328,7 @@ function caretFromPoint(
   let total = 0;
   const walker = cell.ownerDocument.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-    if (n === node) return Math.min(total + offset, text.length);
+    if (n === node) return cellSourceOffset(text, total + offset);
     total += n.nodeValue?.length ?? 0;
   }
   return null;
@@ -1407,8 +1425,9 @@ function replaceCellRange(
     startEdit(host, row, col, from);
   const input = host.input;
   if (!input) return;
-  const start = Math.min(from, input.value.length);
-  const end = Math.min(Math.max(start, to), input.value.length);
+  const text = host.model.rows[row][col].text;
+  const start = editableCell(text, from).offset;
+  const end = editableCell(text, to).offset;
   input.setRangeText(insert, start, end, "end");
   commitInput(host, userEvent);
   input.focus({ preventScroll: true });
@@ -1437,8 +1456,8 @@ function openTableMenu(
     !!input &&
     host.edit?.row === row &&
     host.edit.col === col;
-  const selectionStart = editingClickedCell ? input.selectionStart : 0;
-  const selectionEnd = editingClickedCell ? input.selectionEnd : 0;
+  const selectionStart = editingClickedCell ? cellSourceOffset(cell.text, input.selectionStart) : 0;
+  const selectionEnd = editingClickedCell ? cellSourceOffset(cell.text, input.selectionEnd) : 0;
   const selectedText = cell?.text.slice(selectionStart, selectionEnd) ?? "";
   const hasSelection = selectionEnd > selectionStart;
   menu.append(
@@ -1622,11 +1641,7 @@ function trackCellDrag(
     if (!input || !cell || text === undefined) return stop();
     const head = caretFromPoint(cell, text, event);
     if (head === null) return;
-    input.setSelectionRange(
-      Math.min(anchor, head),
-      Math.max(anchor, head),
-      head < anchor ? "backward" : "forward",
-    );
+    setInputSelection(input, editableCell(text, anchor).offset, editableCell(text, head).offset);
     syncCellSelection(host);
   };
   const stop = () => {
@@ -1868,7 +1883,7 @@ function render(
         el.classList.toggle("cm-md-cell-editing", editing);
         // The edited cell shows its raw source, painted transparent: it is what
         // keeps the column sized to the text the textarea on top is showing.
-        if (editing) el.textContent = text || " ";
+        if (editing) el.textContent = editableCell(text).value || " ";
         else renderCell(text, el, cellHighlights);
         el.dataset.text = text;
         el.dataset.highlights = highlightKey;

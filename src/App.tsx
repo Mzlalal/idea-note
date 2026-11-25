@@ -18,7 +18,6 @@ import { lockNow } from "./lib/crypto/commands";
 import { VAULT_LOCK_REQUEST, useVaultStore } from "./store/useVaultStore";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { Toolbar } from "./components/Editor/Toolbar";
-import { EditorModeTabs } from "./components/Editor/EditorModeTabs";
 import { EditorTabs } from "./components/Editor/EditorTabs";
 import {
   CodeMirrorEditor,
@@ -1054,8 +1053,7 @@ function App() {
           </>
         ) : activeFilePath ? (
           <>
-            {/* Only markdown gets a header row (formatting toolbar + preview
-                toggle). Other files rely on the tab strip for their name, so the
+            {/* Only markdown gets a header row (formatting toolbar). Other files rely on the tab strip for their name, so the
                 editor/image fills the pane right under the tabs. */}
             {!presentationActive &&
               (isMarkdownFile(activeFilePath) || isDraftPath(activeFilePath)) && (
@@ -1068,9 +1066,6 @@ function App() {
               >
                 <div className="ml-2 min-w-0 flex-1">
                   <Toolbar />
-                </div>
-                <div className="mr-3 shrink-0">
-                  <EditorModeTabs />
                 </div>
               </div>
             )}

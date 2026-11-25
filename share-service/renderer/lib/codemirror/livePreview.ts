@@ -624,7 +624,7 @@ function buildDecorations(view: EditorView): DecorationSet {
         }
 
         // Images and local file links only reveal source through their button.
-        if (revealed && name !== "Image" && name !== "Link") return;
+        if (revealed && name === "InlineMath") return;
 
         switch (name) {
           case "Link": {
@@ -673,11 +673,11 @@ function buildDecorations(view: EditorView): DecorationSet {
             break;
           }
           case "LinkMark":
-            hideMark(nFrom, nTo);
+            if (!revealed) hideMark(nFrom, nTo);
             break;
           case "LinkTitle": // the "title" in [t](url "title")
           case "LinkLabel": // the [ref] in a reference-style link
-            hideMark(nFrom, nTo);
+            if (!revealed) hideMark(nFrom, nTo);
             break;
           case "Escape":
             // `\*` -> `*`: drop the backslash, keep the escaped char.
@@ -706,6 +706,7 @@ function buildDecorations(view: EditorView): DecorationSet {
             // the "(" mark.
             const prev = node.node.prevSibling;
             if (
+              !revealed &&
               node.node.parent?.name === "Link" &&
               prev?.name === "LinkMark" &&
               state.doc.sliceString(prev.from, prev.to) === "("

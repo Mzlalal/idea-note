@@ -1003,6 +1003,12 @@
   color: transparent;
   min-width: 3ch;
 }
+.cm-md-table .cm-md-cell-editing.cm-md-cell-wrap {
+  white-space: pre-wrap;
+}
+.cm-md-table .cm-md-cell-editing:not(.cm-md-cell-wrap) {
+  white-space: pre;
+}
 .cm-md-cell-input {
   position: absolute;
   z-index: 1;
