@@ -608,6 +608,8 @@ export default {
   "复制失败：{{0}}": "Copy failed: {{0}}",
   "复制文件": "Copy file",
   "复制路径": "Copy path",
+  "复制绝对路径": "Copy absolute path",
+  "复制相对路径": "Copy relative path",
   "相对路径": "Relative path",
   "复制文件名": "Copy filename",
   "关闭其他页": "Close other tabs",

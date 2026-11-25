@@ -959,22 +959,14 @@ export function Sidebar() {
                       ? tr("复制文件夹")
                       : tr("复制文件")}
                 </MenuItem>
-                <SubMenuItem label={tr("复制路径")} disabled={menuHasMultiple}>
-                  <MenuItem
-                    onClick={() => {
-                      void copyText(menuNode.path);
-                      setMenu(null);
-                    }}
-                  >
-                    {tr("绝对路径")}</MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      void copyText(relativePath(menuNode.path, workspacePath));
-                      setMenu(null);
-                    }}
-                  >
-                    {tr("相对路径")}</MenuItem>
-                </SubMenuItem>
+                <MenuItem
+                  disabled={menuHasMultiple}
+                  onClick={() => {
+                    void copyText(relativePath(menuNode.path, workspacePath));
+                    setMenu(null);
+                  }}
+                >
+                  {tr("复制相对路径")}</MenuItem>
                 <MenuItem
                   disabled={menuHasMultiple}
                   onClick={() => {
@@ -984,6 +976,14 @@ export function Sidebar() {
                 >
                   {tr("复制文件名")}</MenuItem>
               </SubMenuItem>
+              <MenuItem
+                disabled={menuHasMultiple}
+                onClick={() => {
+                  void copyText(menuNode.path);
+                  setMenu(null);
+                }}
+              >
+                {tr("复制绝对路径")}</MenuItem>
               <MenuItem
                 hint="⌘V"
                 onClick={() => {
