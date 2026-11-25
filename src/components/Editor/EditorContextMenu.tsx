@@ -6,6 +6,9 @@ import { useLanguage } from "../../i18n/react";
 import { useEffect, useRef } from "react";
 import { selectAll } from "@codemirror/commands";
 import { openSearchPanel } from "@codemirror/search";
+import type { Text } from "@codemirror/state";
+import { imageAt } from "../../lib/codemirror/imageAt";
+import { openImagePrompt } from "../../lib/codemirror/markdownActions";
 import type { EditorView } from "@codemirror/view";
 
 import { SubMenuItem } from "../ContextSubMenu";
@@ -30,6 +33,7 @@ export interface EditorMenuState {
   x: number;
   y: number;
   hasSelection: boolean;
+  image?: { from: number; to: number; doc: Text };
 }
 
 const isMac = navigator.platform.toLowerCase().includes("mac");
@@ -59,6 +63,11 @@ export function EditorContextMenu({
   const block = view ? codeBlockAt(view, view.state.selection.main.head) : null;
   // An inline span cannot cross a line break, so the option is only offered
   // for a selection that already sits on one line.
+  const image = menu.image;
+  const hit = view && image && view.state.doc === image.doc && !view.state.readOnly
+    ? imageAt(view.state, image.from + 1)
+    : null;
+  const editableImage = hit && image && hit.from === image.from && hit.to === image.to ? image : null;
   const selection = view?.state.selection.main;
   const canEncryptInline =
     menu.hasSelection &&
@@ -128,13 +137,25 @@ export function EditorContextMenu({
         // measured, not guessed. Fixed now that the encryption entries are one
         // submenu row instead of two to four rows that came and went with the
         // vault's state. 在终端运行 adds a row and a divider.
-        top: Math.max(8, Math.min(menu.y, window.innerHeight - (block ? 326 : 284))),
+        top: Math.max(8, Math.min(menu.y, window.innerHeight - ((block ? 326 : 284) + (editableImage ? 42 : 0)))),
         background: "var(--bg-elev)",
         border: "1px solid var(--border)",
         boxShadow: "0 8px 24px var(--shadow)",
       }}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {editableImage && (
+        <>
+          <Item onClick={() => run((editor) => {
+            if (editor !== view || editor.state.doc !== editableImage.doc || editor.state.readOnly) return;
+            editor.dispatch({ selection: { anchor: editableImage.from + 1 } });
+            openImagePrompt(editor);
+          })}>
+            {tr("编辑图片")}
+          </Item>
+          <div className="my-1" style={{ borderTop: "1px solid var(--border)" }} />
+        </>
+      )}
       <Item hint={`${mod}X`} disabled={!menu.hasSelection} onClick={() => run(cut)}>
         {tr("剪切")}</Item>
       <Item hint={`${mod}C`} disabled={!menu.hasSelection} onClick={() => run(copy)}>

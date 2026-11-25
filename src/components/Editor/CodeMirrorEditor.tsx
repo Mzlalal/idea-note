@@ -503,6 +503,9 @@ export function CodeMirrorEditor({ active = true }: { active?: boolean }) {
       view.dispatch({ selection: { anchor: pos, head: onResource ? resourceTo : pos } });
     }
     setMenu({
+      image: onResource && resource.querySelector("img")
+        ? { from: resourceFrom, to: resourceTo, doc: view.state.doc }
+        : undefined,
       x: e.clientX,
       y: e.clientY,
       hasSelection: view.state.selection.ranges.some((r) => !r.empty),
