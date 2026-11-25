@@ -80,13 +80,12 @@ jobs:
           echo "archive_path=${archive_path}" >> "$GITHUB_OUTPUT"
 
       - name: Upload Skill archive
-        uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs.resolve-release.outputs.tag_name }}
-          files: ${{ steps.skill-archive.outputs.archive_path }}
-          fail_on_unmatched_files: true
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-release.outputs.tag_name }}
+          ARCHIVE: ${{ steps.skill-archive.outputs.archive_path }}
+        run: gh release upload "$RELEASE_TAG" "$ARCHIVE" --clobber --repo "$GITHUB_REPOSITORY"
+
 
   publish-tauri:
     needs: resolve-release
