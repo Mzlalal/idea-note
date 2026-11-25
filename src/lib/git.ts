@@ -579,8 +579,9 @@ async function ensureIdentity(dir: string): Promise<void> {
 async function commitAll(
   dir: string,
   getMessage: () => string | Promise<string>,
+  includeNew = false,
 ): Promise<boolean> {
-  await gitOk(dir, ["add", "-u"]);
+  await gitOk(dir, includeNew ? ["add", "-A", "--", "."] : ["add", "-u"]);
   if ((await gitRun(dir, ["diff", "--cached", "--quiet"])).code === 0) return false;
   await ensureIdentity(dir);
   await gitOk(dir, ["commit", "-m", await getMessage()]);
@@ -933,6 +934,7 @@ export async function syncWorkspace(
   /** false = leave local edits uncommitted and only pull/push (auto-sync in
    *  manual-commit mode, or the push half of a manual sync). */
   commitLocal = true,
+  includeNew = false,
 ): Promise<SyncResult> {
   const getMessage = async () => {
     if (!commitMessage) return syncCommitMessage();
@@ -953,14 +955,14 @@ export async function syncWorkspace(
     // No remote configured → local-only sync: just commit, skip fetch/merge/push.
     const remoteUrl = await getRemoteUrl(dir);
     if (!remoteUrl) {
-      const committed = commitLocal && (await commitAll(dir, getMessage));
+      const committed = commitLocal && (await commitAll(dir, getMessage, includeNew));
       return committed
         ? { ok: true, conflictFiles: [], changed: true, message: tr("已同步到本地仓库") }
         : { ok: true, conflictFiles: [], changed: false, message: tr("已是最新，无需同步") };
     }
 
     // 1. Local edits become a commit before anything touches the network.
-    const committed = commitLocal && (await commitAll(dir, getMessage));
+    const committed = commitLocal && (await commitAll(dir, getMessage, includeNew));
     const credentialRef = { current: null as GitCredential | null };
 
     // 2. Fetch; offline is fine — the local commit already protects the data.

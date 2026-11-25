@@ -269,3 +269,15 @@ test('manual commit stages both ends of a chained rename without staging the van
   assert.equal(git(local, 'show', `HEAD:${unchecked}`), 'original unchecked\n');
   assert.equal(git(local, 'status', '--porcelain').trim(), 'M unchecked.md');
 });
+
+test('explicit sync includes new files and respects Git ignore rules', async t => {
+  const { git, api, local, peer } = fixture(t);
+  writeFileSync(join(local, '.gitignore'), 'private.txt\n');
+  writeFileSync(join(local, 'private.txt'), 'ignored');
+  writeFileSync(join(local, 'new-note.md'), '# New note');
+  const result = await api.syncWorkspace(local, undefined, undefined, undefined, true, true);
+  assert.equal(result.ok, true, result.message);
+  git(peer, 'fetch', 'origin');
+  assert.equal(git(peer, 'show', 'origin/main:new-note.md'), '# New note');
+  assert.ok(!git(peer, 'ls-tree', '--name-only', 'origin/main').includes('private.txt'));
+});

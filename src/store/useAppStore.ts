@@ -3738,8 +3738,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         get().requestGitCredential,
         commitMessage,
         commitLocal,
+        !opts?.auto,
       );
-      // Syncs commit only tracked files; say when new files are being left out
+      // Background sync may leave files untracked; report them
       // so a note never silently stops syncing.
       const untracked = result.ok ? await countUntracked(workspacePath).catch(() => 0) : 0;
       return untracked
