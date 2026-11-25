@@ -791,10 +791,9 @@ export function Sidebar() {
                   <p>{notesError}</p>
                   <button className="mt-2 underline" onClick={() => void loadNotes()}>{tr("重试")}</button>
                 </div>
-              ) : <>
-                {notesLoading && <p role="status" className="px-3 py-1 text-xs" style={{ color: "var(--text-muted)" }}>{tr("正在更新笔记…")}</p>}
-                <NotesTree nodes={notesTree} onContextMenu={openContextMenu} />
-              </>
+              ) : (
+                <NotesTree nodes={notesTree} loading={notesLoading} onContextMenu={openContextMenu} />
+              )
             ) : notesLoading && !notesTree.length ? (
               <p role="status" className="p-4 text-xs">{tr("正在查找笔记…")}</p>
             ) : notesError ? (
