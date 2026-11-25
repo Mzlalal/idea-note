@@ -45,10 +45,6 @@ Find this fork’s macOS and Windows packages on [Lite Note Releases](https://gi
 | **macOS** | **Apple Silicon**: [Installer](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_aarch64.dmg) \| [App archive](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_aarch64.app.tar.gz)<br>**Intel**: [Installer](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_x64.dmg) \| [App archive](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_x64.app.tar.gz) | Choose Apple Silicon for M-series chips or Intel for Intel Macs |
 | **Linux** | **Installers**: [deb](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_linux_amd64.deb) \| [rpm](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_linux_x86_64.rpm)<br>**Portable**: [AppImage](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_linux_amd64.AppImage) | deb for Ubuntu/Debian/Linux Mint; rpm for Fedora/RHEL/CentOS Stream/openSUSE |
 
-| Skill | Download | Notes |
-| :--- | :--- | :--- |
-| **AI assistant Skill** | [ZIP](https://github.com/Mzlalal/lite-note/releases/latest/download/idea-note-skill.zip) | Extract `idea-note/` into your AI assistant's skills directory and load it to write highlight blocks, interactive components, and more |
-
 If macOS reports that the application cannot be opened or is damaged on first launch:
 
 1. Open **System Settings → Privacy & Security**, find the blocked application, and click **Open Anyway**.
@@ -109,7 +105,6 @@ The assistant can create **interactive components**, too. Ask it to add an inter
 
 Learn more in the [AI assistant implementation guide](./doc/AI笔记助手原理.md) and [DeepSeek setup guide](./doc/AI笔记助手接入DeepSeek步骤.md) (Chinese).
 
-External AI assistants can use the [Lite Note Skill](https://github.com/Mzlalal/lite-note/releases/latest/download/idea-note-skill.zip) to gain the same note-writing capabilities as the built-in AI assistant, including highlight blocks, interactive components, and more.
 
 ### Encrypting notes
 
