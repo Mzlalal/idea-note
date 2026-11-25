@@ -254,3 +254,20 @@ npm run tauri build
 
 - 应用名称：`Lite Note`
 - 应用标识：`com.liubs.idea-note`
+
+## 通过 MCP 连接 AI
+
+使用 [uv](https://docs.astral.sh/uv/) 启动本地服务。将下面的配置加入支持 stdio 的 MCP 客户端，并填写脚本和笔记工作区的绝对路径。
+
+```json
+{
+  "mcpServers": {
+    "lite-note": {
+      "command": "uv",
+      "args": ["run", "--script", "/path/to/idea-note/scripts/lite-note-mcp.py", "/path/to/notes", "--write"]
+    }
+  }
+}
+```
+
+服务可以搜索和读取工作区内已经保存的 UTF-8 Markdown 文件。加入 `--write` 可新建笔记或更新已有笔记。更新时使用读取工具返回的版本，文件已经变化时请重新读取。写入新目录前先创建对应文件夹。
