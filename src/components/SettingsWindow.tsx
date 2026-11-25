@@ -2021,7 +2021,7 @@ type McpAccess = {
 
 function McpAccessSetting() {
   const [workspace, setWorkspace] = useState(() => new URLSearchParams(window.location.search).get("ws") ?? "");
-  const [writable, setWritable] = useState(false);
+  const [writable, setWritable] = useState(() => localStorage.getItem("lite-note:mcp-copy-writable") === "true");
   const [copied, setCopied] = useState("");
   const [access, setAccess] = useState<McpAccess>();
   const [busy, setBusy] = useState(false);
@@ -2089,7 +2089,11 @@ function McpAccessSetting() {
               <TextButton onClick={chooseWorkspace}>{tr("选择文件夹")}</TextButton>
             </Row>
             <Row title={tr("允许写入笔记")} desc={tr("此选项应用于新复制的配置")}>
-              <Toggle checked={writable} onChange={(value) => { setWritable(value); setCopied(""); }} />
+              <Toggle checked={writable} onChange={(value) => {
+                localStorage.setItem("lite-note:mcp-copy-writable", String(value));
+                setWritable(value);
+                setCopied("");
+              }} />
             </Row>
           </>
         )}
