@@ -30,7 +30,6 @@ import {
 import type { SyntaxNode, Tree } from "@lezer/common";
 
 import { toDisplaySrc } from "../imagePath";
-import { openImagePrompt } from "./markdownActions";
 import {
   bindResourcePreview,
   isResourceLink,
@@ -224,7 +223,7 @@ class ImageWidget extends WidgetType {
     }
 
     bindResourcePreview(wrap, view, this, this.url, tr("图片"), this.selected,
-      () => openImagePrompt(view), !this.readOnly);
+      undefined, !this.readOnly);
     return wrap;
   }
   ignoreEvent() {
