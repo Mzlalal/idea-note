@@ -792,7 +792,7 @@ export function Sidebar() {
                   <button className="mt-2 underline" onClick={() => void loadNotes()}>{tr("重试")}</button>
                 </div>
               ) : (
-                <NotesTree nodes={notesTree} loading={notesLoading} onContextMenu={openContextMenu} />
+                <NotesTree nodes={notesTree} onContextMenu={openContextMenu} />
               )
             ) : notesLoading && !notesTree.length ? (
               <p role="status" className="p-4 text-xs">{tr("正在查找笔记…")}</p>

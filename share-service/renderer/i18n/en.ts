@@ -921,7 +921,6 @@ export default {
   "刷新文件列表": "Refresh file list",
   "正在打开": "Opening",
   "正在查找笔记…": "Finding notes…",
-  "正在更新笔记…": "Updating notes…",
   "这个文件夹是空的。": "This folder is empty.",
   "同级新建笔记": "New note alongside",
   "同级新建文件": "New file alongside",

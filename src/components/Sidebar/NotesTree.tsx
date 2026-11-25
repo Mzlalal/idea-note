@@ -123,7 +123,7 @@ function foldSingleFolderChain(node: FileNode): FoldedFolder {
  *  - "tree": the folder hierarchy, each note as a two-line row.
  *  - "timeline": individual notes grouped by date.
  */
-export function NotesTree({ nodes, onContextMenu, loading }: Props & { loading: boolean }) {
+export function NotesTree({ nodes, onContextMenu }: Props) {
   useLanguage();
   const filtered = useMemo(() => filterNotesTree(nodes), [nodes]);
   const view = useAppStore((s) => s.notesViewMode);
@@ -142,7 +142,7 @@ export function NotesTree({ nodes, onContextMenu, loading }: Props & { loading: 
       {/* Sub-mode header: note count + cards/tree switcher */}
       <div className="flex items-center justify-between px-2.5 pb-1.5 pt-0.5 select-none">
         <span role="status" className="min-w-0 truncate" style={{ fontSize: "max(0.8em, 11px)", color: "var(--text-muted)" }}>
-          {loading ? tr("正在更新笔记…") : `${total} ${tr("篇笔记")}`}</span>
+          {total} {tr("篇笔记")}</span>
         <div
           className="flex shrink-0 items-center overflow-hidden rounded-md"
           style={{ border: "1px solid var(--border)", background: "var(--bg)" }}
