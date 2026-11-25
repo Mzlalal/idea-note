@@ -590,6 +590,7 @@ export default {
   "在终端运行": "Run in terminal",
   "只读": "Read-only",
   "源码": "Source",
+  "外部": "External",
   "未保存的草稿": "Unsaved draft",
   "未命名": "Untitled",
   "新建空白页（⌘/Ctrl+N）": "New blank page (⌘/Ctrl+N)",

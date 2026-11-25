@@ -294,6 +294,7 @@ const RIGHT_PANEL_MAX_RATIO = 0.9;
 export interface PromptRequest {
   title: string;
   defaultValue: string;
+  suffix?: string;
   fields?: Array<{
     name: string;
     label: string;
@@ -344,6 +345,7 @@ export interface ConfirmRequest {
   /** Label of the primary action button, e.g. "删除". */
   confirmLabel: string;
   onConfirm: () => void | Promise<void>;
+  confirmOnEnter?: boolean;
   /** Primary button color: destructive red unless set to "primary" (accent). */
   tone?: "danger" | "primary";
   /** Optional second action button (neutral styling), e.g. "新窗口". */
@@ -640,7 +642,7 @@ interface AppState {
   setDoubleCtrlActivation: (on: boolean) => Promise<void>;
   requestNewRawFile: (dir?: string) => void;
   requestNewFolder: (dir?: string) => void;
-  requestRename: (path: string) => void;
+  requestRename: (path: string, isDirectory?: boolean) => void;
   closePrompt: () => void;
   closeGitCredentialPrompt: () => void;
   openConfirm: (req: ConfirmRequest) => void;
@@ -894,7 +896,10 @@ export const isDraftPath = (p: string | null | undefined): p is string =>
   !!p && p.startsWith(DRAFT_PREFIX);
 const timestampDraftName = (path: string) =>
   /^untitled:\/\/(\d{8}-\d{6})$/.exec(path)?.[1];
-export const draftTitle = (path: string) => timestampDraftName(path) ?? tr("未命名");
+export const draftTitle = (path: string) => {
+  const stamp = timestampDraftName(path);
+  return stamp ? `${stamp}.md` : tr("未命名");
+};
 
 function noteTimestamp(date = new Date()): string {
   const pad = (part: number) => String(part).padStart(2, "0");
@@ -3171,6 +3176,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ? tr("确定删除「{{0}}」？此操作不可撤销。", { 0: basename(roots[0]) })
             : tr("确定删除选中的 {{0}} 个项目？此操作不可撤销。", { 0: roots.length }),
         confirmLabel: tr("删除"),
+        confirmOnEnter: true,
         onConfirm: () => get().removeManyNow(roots),
       },
     });
@@ -3251,11 +3257,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  requestRename: (path) => {
+  requestRename: (path, isDirectory = false) => {
+    const filename = basename(path);
+    const suffix = isDirectory ? undefined : filename.match(/(?<=.)\.(?:md|markdown)$/i)?.[0];
     set({
       prompt: {
         title: tr("重命名"),
-        defaultValue: basename(path),
+        defaultValue: suffix ? filename.slice(0, -suffix.length) : filename,
+        suffix,
         onSubmit: (name) => get().rename(path, name),
       },
     });

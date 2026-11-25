@@ -3,7 +3,8 @@ import { useLanguage } from "../../i18n/react";
 import { ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { draftTitle, isDraftPath, useAppStore } from "../../store/useAppStore";
-import { basename, isImageFile } from "../../lib/fs";
+import { basename, isImageFile, isMarkdownFile } from "../../lib/fs";
+import { relativePathWithinWorkspace } from "../../lib/workspacePath";
 import { copyFileToClipboard, copyText, relativePath } from "../../lib/clipboard";
 
 /**
@@ -23,6 +24,7 @@ export function EditorTabs() {
   const activeFilePath = useAppStore((s) => s.activeFilePath);
   const isDirty = useAppStore((s) => s.isDirty);
   const openFile = useAppStore((s) => s.openFile);
+  const requestRename = useAppStore((s) => s.requestRename);
   const closeTab = useAppStore((s) => s.closeTab);
   const closeOtherTabs = useAppStore((s) => s.closeOtherTabs);
   const closeAllTabs = useAppStore((s) => s.closeAllTabs);
@@ -154,6 +156,7 @@ export function EditorTabs() {
             const active = path === activeFilePath;
             const dirty = active && isDirty;
             const draft = isDraftPath(path);
+            const external = !draft && (!workspacePath || relativePathWithinWorkspace(workspacePath, path) === null);
             const Icon = isImageFile(path) ? ImageIcon : FileText;
             const dragging = dragIndex === index;
             // Show the insertion bar on this tab's leading edge, or — for the
@@ -174,6 +177,9 @@ export function EditorTabs() {
                     return;
                   }
                   if (!active) void openFile(path);
+                }}
+                onDoubleClick={() => {
+                  if (!draft && isMarkdownFile(path)) requestRename(path);
                 }}
                 onMouseDown={(e) => {
                   // Middle-click closes the tab (standard browser/editor gesture).
@@ -209,6 +215,11 @@ export function EditorTabs() {
                 {showAfter && <DropIndicator side="right" />}
                 <Icon size={13} className="shrink-0" style={{ color: "var(--text-muted)" }} />
                 <span className="min-w-0 truncate">{draft ? draftTitle(path) : basename(path)}</span>
+                {external && (
+                  <span className="shrink-0 rounded px-1 text-[10px] font-medium text-blue-600 dark:text-blue-300 bg-blue-500/10">
+                    {tr("外部")}
+                  </span>
+                )}
                 <button
                   title={tr("关闭")}
                   // Keep the tab's pointer-capture drag from starting here: with
@@ -216,6 +227,7 @@ export function EditorTabs() {
                   // ensuing click to the capturing tab, so this button's onClick
                   // would never fire (WebKit doesn't retarget, hence mac worked).
                   onPointerDown={(e) => e.stopPropagation()}
+                  onDoubleClick={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     void closeTab(path);

@@ -1,6 +1,6 @@
 import { tr } from "../i18n/core.ts";
 import { useLanguage } from "../i18n/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useAppStore, type PromptRequest } from "../store/useAppStore";
 
 type PromptField = NonNullable<PromptRequest["fields"]>[number];
@@ -15,15 +15,19 @@ export function PromptModal() {
   const closePrompt = useAppStore((s) => s.closePrompt);
 
   const [value, setValue] = useState("");
+  const [suffix, setSuffix] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const composing = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!prompt) return;
+    composing.current = false;
     setValue(prompt.defaultValue);
+    setSuffix(prompt.suffix ?? "");
     setValues(
       Object.fromEntries(
         (prompt.fields ?? []).map((field) => [
@@ -55,16 +59,32 @@ export function PromptModal() {
   }
   let fieldIndex = 0;
 
+  const cannotSubmit = busy || Boolean(prompt.suffix && !value.trim());
   const submit = async () => {
-    if (busy) return;
+    if (cannotSubmit) return;
     setBusy(true);
     setError(null);
     try {
-      await prompt.onSubmit(value, values);
+      const extension = suffix.trim().replace(/^\.+/, "");
+      const name = prompt.suffix && extension ? `${value.trim()}.${extension}` : value;
+      await prompt.onSubmit(name, values);
       closePrompt();
     } catch (e) {
       setError(typeof e === "string" ? e : (e as Error)?.message ?? tr("操作失败"));
       setBusy(false);
+    }
+  };
+
+  const onInputKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    // Some IMEs clear isComposing before delivering the key that commits a candidate.
+    if (!(e.target instanceof HTMLInputElement) || composing.current ||
+      e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (!e.repeat) void submit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closePrompt();
     }
   };
 
@@ -104,6 +124,9 @@ export function PromptModal() {
           boxShadow: "0 12px 40px var(--shadow)",
         }}
         onMouseDown={(e) => e.stopPropagation()}
+        onCompositionStart={() => { composing.current = true; }}
+        onCompositionEnd={() => { composing.current = false; }}
+        onKeyDown={onInputKeyDown}
       >
         <div
           className="mb-3 text-sm font-semibold"
@@ -147,15 +170,6 @@ export function PromptModal() {
                               [field.name]: e.target.value,
                             }))
                           }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              submit();
-                            } else if (e.key === "Escape") {
-                              e.preventDefault();
-                              closePrompt();
-                            }
-                          }}
                           className="min-w-0 flex-1 rounded-md px-2.5 py-1.5 text-sm outline-none"
                           style={{
                             background: "var(--bg)",
@@ -197,26 +211,28 @@ export function PromptModal() {
             })}
           </div>
         ) : (
-          <input
-            ref={inputRef}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                submit();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                closePrompt();
-              }
-            }}
-            className="w-full rounded-md px-2.5 py-1.5 text-sm outline-none"
-            style={{
-              background: "var(--bg)",
-              border: `1px solid ${error ? "#e5484d" : "var(--border)"}`,
-              color: "var(--text)",
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="min-w-0 flex-1 rounded-md px-2.5 py-1.5 text-sm outline-none"
+              style={{
+                background: "var(--bg)",
+                border: `1px solid ${error ? "#e5484d" : "var(--border)"}`,
+                color: "var(--text)",
+              }}
+            />
+            {prompt.suffix && (
+              <input
+                aria-label={tr("扩展名")}
+                value={suffix}
+                onChange={(e) => setSuffix(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                className="w-24 shrink-0 rounded-md border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1.5 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+              />
+            )}
+          </div>
         )}
         {error && (
           <div className="mt-1.5 text-xs" style={{ color: "#e5484d" }}>
@@ -232,9 +248,9 @@ export function PromptModal() {
             {tr("取消")}</button>
           <button
             onClick={submit}
-            disabled={busy}
+            disabled={cannotSubmit}
             className="rounded-md px-3 py-1.5 text-sm font-medium text-white transition-opacity"
-            style={{ background: "var(--accent)", opacity: busy ? 0.6 : 1 }}
+            style={{ background: "var(--accent)", opacity: cannotSubmit ? 0.6 : 1 }}
           >
             {tr("确定")}</button>
         </div>

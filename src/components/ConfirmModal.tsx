@@ -1,6 +1,6 @@
 import { tr } from "../i18n/core.ts";
 import { useLanguage } from "../i18n/react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, AppWindow, X } from "lucide-react";
 import { useAppStore } from "../store/useAppStore";
@@ -27,6 +27,17 @@ export function ConfirmModal() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [confirm, closeConfirm]);
+
+  const primaryRef = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    if (!confirm?.confirmOnEnter) return;
+    const previous = document.activeElement;
+    const primary = primaryRef.current;
+    primary?.focus();
+    return () => {
+      if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
+    };
+  }, [confirm]);
 
   if (!confirm) return null;
   const hasAltAction = Boolean(confirm.altLabel && confirm.onAlt);
@@ -155,15 +166,21 @@ export function ConfirmModal() {
             </button>
           )}
           <button
+            ref={primaryRef}
+            aria-keyshortcuts={confirm.confirmOnEnter ? "Enter" : undefined}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.repeat || e.nativeEvent.isComposing)) e.preventDefault();
+            }}
             onClick={() => run(confirm.onConfirm)}
             disabled={busy}
-            className="rounded-md px-3.5 py-1.5 text-sm font-medium text-white transition-opacity"
+            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium text-white transition-opacity"
             style={{
               background: confirm.tone === "primary" ? "var(--accent)" : "#e5484d",
               opacity: busy ? 0.6 : 1,
             }}
           >
             {confirm.confirmLabel}
+            {confirm.confirmOnEnter && <span aria-hidden="true">↵</span>}
           </button>
         </div>
       </div>

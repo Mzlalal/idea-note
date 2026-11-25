@@ -51,7 +51,7 @@ function fixture(overrides = {}) {
 function event(platform, letter, shiftKey = false, overrides = {}) {
   return {
     key: shiftKey ? letter.toUpperCase() : letter, code: `Key${letter.toUpperCase()}`,
-    metaKey: platform === 'MacIntel', ctrlKey: platform !== 'MacIntel', altKey: true, shiftKey,
+    metaKey: platform === 'MacIntel', ctrlKey: platform !== 'MacIntel', altKey: letter === 'y' || letter === 'b', shiftKey,
     target: null, defaultPrevented: false, isComposing: false, repeat: false, stopped: false,
     preventDefault() { this.defaultPrevented = true; },
     stopPropagation() { this.stopped = true; },
@@ -68,11 +68,11 @@ for (const platform of ['MacIntel', 'Win32', 'Linux x86_64']) {
       assert.ok(!used.has(normalized), `${command.id}: ${normalized}`);
       used.add(normalized);
     }
-    for (const [id, letter, shift] of [['syncNow', 's', false], ['manualSync', 's', true], ['openHistory', 'y', false], ['branchManager', 'b', false]]) {
+    for (const [id, letter, shift] of [['syncNow', 'k', true], ['manualSync', 'k', false], ['openHistory', 'y', false], ['branchManager', 'b', false]]) {
       const { state, calls } = fixture();
       const key = event(platform, letter, shift);
       // Option can change the typed character; the physical key still matches.
-      if (platform === 'MacIntel') key.key = 'ß';
+      if (platform === 'MacIntel' && key.altKey) key.key = 'ß';
       assert.equal(handler(key, state), true);
       assert.deepEqual(calls, [id]);
       assert.equal(key.defaultPrevented, true);
@@ -82,14 +82,14 @@ for (const platform of ['MacIntel', 'Win32', 'Linux x86_64']) {
   });
 }
 
-test('rebinding takes effect immediately, updates menu labels, and restoring defaults restores the old key', () => {
+test('rebinding takes effect immediately, updates menu labels, and restoring defaults restores the default key', () => {
   const { keys, handler } = load('MacIntel');
   const { state, calls } = fixture({ editorKeybindings: { manualSync: 'Mod-Shift-j' } });
-  assert.equal(handler(event('MacIntel', 's', true), state), false);
+  assert.equal(handler(event('MacIntel', 'k'), state), false);
   assert.equal(handler(event('MacIntel', 'j', true, { altKey: false }), state), true);
   assert.equal(keys.commandKeyLabel('manualSync', state.editorKeybindings), '⌘⇧J');
   delete state.editorKeybindings.manualSync;
-  assert.equal(handler(event('MacIntel', 's', true), state), true);
+  assert.equal(handler(event('MacIntel', 'k'), state), true);
   assert.equal(handler(event('MacIntel', 'j', true, { altKey: false }), state), false);
   assert.deepEqual(calls, ['manualSync', 'manualSync']);
 });
@@ -103,14 +103,14 @@ test('modals, missing repositories, workspace changes, composition and repeated 
     { branchManagerOpen: true }, { vaultRotationBusy: true }, { syncState: 'syncing' }, { branchTaskBusy: true },
   ]) {
     const { state, calls } = fixture(overrides);
-    const key = event('Win32', 's');
+    const key = event('Win32', 'k', true);
     assert.equal(handler(key, state), false);
     assert.equal(key.defaultPrevented, false);
     assert.equal(calls.length, 0);
   }
   for (const flags of [{ defaultPrevented: true }, { isComposing: true }, { repeat: true }]) {
     const { state, calls } = fixture();
-    assert.equal(handler(event('Win32', 's', false, flags), state), false);
+    assert.equal(handler(event('Win32', 'k', true, flags), state), false);
     assert.equal(calls.length, 0);
   }
 });
@@ -124,12 +124,12 @@ test('text fields and terminals keep their keys while the main editor can run co
     { closest: selector => selector === '[contenteditable=true]' ? { closest: () => null } : null },
   ]) {
     const { state, calls } = fixture();
-    assert.equal(handler(event('Win32', 's', false, { target }), state), false);
+    assert.equal(handler(event('Win32', 'k', true, { target }), state), false);
     assert.equal(calls.length, 0);
   }
   const { state, calls } = fixture();
   const editor = { closest: selector => selector === '[contenteditable=true]' ? { closest: () => ({}) } : null };
-  assert.equal(handler(event('Win32', 's', false, { target: editor }), state), true);
+  assert.equal(handler(event('Win32', 'k', true, { target: editor }), state), true);
   assert.deepEqual(calls, ['syncNow']);
 });
 

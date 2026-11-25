@@ -1023,7 +1023,7 @@ export function Sidebar() {
               )}
               <MenuItem
                 onClick={() => {
-                  requestRename(menuNode.path);
+                  requestRename(menuNode.path, menuNode.is_dir);
                   setMenu(null);
                 }}
               >

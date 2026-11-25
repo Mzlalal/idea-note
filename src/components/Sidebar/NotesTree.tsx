@@ -182,7 +182,12 @@ export function NotesTree({ nodes, onContextMenu }: Props) {
   );
 }
 
-const timelineIcons = ["📝", "💡", "📌", "📚"];
+const timelineIcons = [
+  "🌿", "🌙", "☕", "🪁", "🐚", "🚲", "🎨", "🍋",
+  "⛰️", "🎧", "🌊", "🧩", "🏮", "🌻", "🦊", "🛶",
+  "🍄", "🎈", "🪐", "🌵", "🚃", "🍉", "🦋", "🏕️",
+  "❄️", "🌋", "🏸", "🎬", "🧭", "🌈", "🥐", "🏙️",
+];
 
 function NoteTimeline({ nodes, onContextMenu }: Props) {
   const groups = useMemo(() => groupNotesByDate(nodes), [nodes]);
