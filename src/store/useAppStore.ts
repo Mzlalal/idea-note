@@ -1344,7 +1344,7 @@ function readSettings(): AppSettings {
     instantNotes: true,
     showAiButton: true,
     doubleCtrlActivation: isWindows,
-    themeId: fallbackMode,
+    themeId: legacyTheme ? fallbackMode : "system",
     customThemes: [],
     appearanceMode: fallbackMode,
     editorFontSize: 15,
@@ -4278,3 +4278,10 @@ if (!isSettingsWindow) {
 }
 
 export { dirname };
+
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => {
+  const { themeId, customThemes } = useAppStore.getState();
+  if (themeId !== "system") return;
+  const mode = applyTheme(themeId, customThemes);
+  useAppStore.setState({ theme: mode, appearanceMode: mode });
+});

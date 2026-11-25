@@ -123,6 +123,7 @@ import { isMac, isWindows } from "../lib/platform";
 import { copyText } from "../lib/clipboard";
 import {
   BUILTIN_THEMES,
+  resolveTheme,
   THEME_TOKEN_GROUPS,
   normalizeCustomTheme,
   newThemeId,
@@ -3281,7 +3282,8 @@ function ThemeSection({
   showToast: (message: string, tone?: "success" | "error") => void;
 }) {
   useLanguage();
-  const all = [...BUILTIN_THEMES, ...customThemes];
+  useAppStore((state) => state.theme);
+  const all = [resolveTheme("system", customThemes), ...BUILTIN_THEMES, ...customThemes];
   const active = all.find((t) => t.id === themeId) ?? all[0];
   const editing = active.custom ? active : null;
 

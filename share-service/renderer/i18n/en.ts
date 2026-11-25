@@ -1,5 +1,6 @@
 // Chinese source keys keep the original interface available as a complete fallback.
 export default {
+  "跟随系统": "Follow system",
   "无法打开文档：{{0}}": "Could not open the document: {{0}}",
   "macOS 面板设置失败：{{0}}": "Could not update macOS panel settings: {{0}}",
   "应用启动台": "App Launcher",

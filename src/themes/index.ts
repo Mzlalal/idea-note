@@ -122,6 +122,10 @@ export function canonicalThemeId(id: string): string {
 /** Resolve a stored id against custom themes first, then built-ins, then light. */
 export function resolveTheme(id: string, custom: ThemeDef[]): ThemeDef {
   const canonicalId = canonicalThemeId(id);
+  if (canonicalId === "system") {
+    const base = window.matchMedia("(prefers-color-scheme: dark)").matches ? DARK_BASE : LIGHT_BASE;
+    return { ...base, id: "system", name: tr("跟随系统") };
+  }
   return (
     custom.find((t) => t.id === canonicalId) ??
     BUILTIN_THEMES.find((t) => t.id === canonicalId) ??
