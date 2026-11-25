@@ -163,7 +163,29 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Build signed macOS packages
+        if: matrix.os_name == 'macos'
+        env:
+          TARGET: ${{ matrix.target }}
+          ARCH: ${{ matrix.arch }}
+          VERSION: ${{ needs.resolve-release.outputs.tag_name }}
+        run: |
+          npm run package:macos -- "$TARGET"
+          bundle="src-tauri/target/$TARGET/release/bundle"
+          mkdir -p release-assets
+          cp "$bundle/dmg/Lite Note_${VERSION}_${ARCH}.dmg" "release-assets/Lite.Note_${VERSION}_macos_${ARCH}.dmg"
+          tar -czf "release-assets/Lite.Note_${VERSION}_macos_${ARCH}.app.tar.gz" -C "$bundle/macos" 'Lite Note.app'
+
+      - name: Upload macOS packages
+        if: matrix.os_name == 'macos'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.resolve-release.outputs.tag_name }}
+          files: release-assets/*
+          fail_on_unmatched_files: true
+
       - name: Build and upload Tauri bundles
+        if: matrix.os_name != 'macos'
         uses: tauri-apps/tauri-action@action-v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

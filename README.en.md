@@ -12,8 +12,8 @@
   <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux" />
 </p>
 <p align="center">
-  <a href="https://github.com/Mzlalal/idea-note/releases/latest"><img src="https://img.shields.io/github/v/release/Mzlalal/idea-note?display_name=tag&style=flat-square&logo=github&label=version&color=0ea5e9" alt="Latest release" /></a>
-  <a href="https://github.com/Mzlalal/idea-note/releases"><img src="https://img.shields.io/github/downloads/Mzlalal/idea-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
+  <a href="https://github.com/Mzlalal/lite-note/releases/latest"><img src="https://img.shields.io/github/v/release/Mzlalal/lite-note?display_name=tag&style=flat-square&logo=github&label=version&color=0ea5e9" alt="Latest release" /></a>
+  <a href="https://github.com/Mzlalal/lite-note/releases"><img src="https://img.shields.io/github/downloads/Mzlalal/lite-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
 </p>
 
 **Lite Note** is a lightweight notes application combining a Markdown editor, an AI assistant, code execution, content encryption, and Git synchronization. Available for Windows, macOS, and Linux.
@@ -37,17 +37,17 @@ See the [changelog](./CHANGELOG.md) for release notes. The newest entry is avail
 
 ### Installation
 
-Find this fork’s macOS and Windows packages on [Lite Note Releases](https://github.com/Mzlalal/idea-note/releases).
+Find this fork’s macOS and Windows packages on [Lite Note Releases](https://github.com/Mzlalal/lite-note/releases).
 
 | Platform | Downloads | Notes |
 | :--- | :--- | :--- |
-| **Windows** | **x64**: [Installer](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_windows_x64_setup.exe) \| [Portable](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_windows_x64.zip)<br>**x86**: [Installer](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_windows_x86_setup.exe) \| [Portable](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_windows_x86.zip) | Choose x64 for most computers; x86 for 32-bit Windows |
-| **macOS** | **Apple Silicon**: [Installer](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_macos_aarch64.dmg) \| [App archive](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_macos_aarch64.app.tar.gz)<br>**Intel**: [Installer](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_macos_x64.dmg) \| [App archive](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_macos_x64.app.tar.gz) | Choose Apple Silicon for M-series chips or Intel for Intel Macs |
-| **Linux** | **Installers**: [deb](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_linux_amd64.deb) \| [rpm](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_linux_x86_64.rpm)<br>**Portable**: [AppImage](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.1_linux_amd64.AppImage) | deb for Ubuntu/Debian/Linux Mint; rpm for Fedora/RHEL/CentOS Stream/openSUSE |
+| **Windows** | **x64**: [Installer](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_windows_x64_setup.exe) \| [Portable](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_windows_x64.zip)<br>**x86**: [Installer](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_windows_x86_setup.exe) \| [Portable](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_windows_x86.zip) | Choose x64 for most computers; x86 for 32-bit Windows |
+| **macOS** | **Apple Silicon**: [Installer](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_aarch64.dmg) \| [App archive](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_aarch64.app.tar.gz)<br>**Intel**: [Installer](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_x64.dmg) \| [App archive](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_x64.app.tar.gz) | Choose Apple Silicon for M-series chips or Intel for Intel Macs |
+| **Linux** | **Installers**: [deb](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_linux_amd64.deb) \| [rpm](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_linux_x86_64.rpm)<br>**Portable**: [AppImage](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_linux_amd64.AppImage) | deb for Ubuntu/Debian/Linux Mint; rpm for Fedora/RHEL/CentOS Stream/openSUSE |
 
 | Skill | Download | Notes |
 | :--- | :--- | :--- |
-| **AI assistant Skill** | [ZIP](https://github.com/Mzlalal/idea-note/releases/latest/download/idea-note-skill.zip) | Extract `idea-note/` into your AI assistant's skills directory and load it to write highlight blocks, interactive components, and more |
+| **AI assistant Skill** | [ZIP](https://github.com/Mzlalal/lite-note/releases/latest/download/idea-note-skill.zip) | Extract `idea-note/` into your AI assistant's skills directory and load it to write highlight blocks, interactive components, and more |
 
 If macOS reports that the application cannot be opened or is damaged on first launch:
 
@@ -109,7 +109,7 @@ The assistant can create **interactive components**, too. Ask it to add an inter
 
 Learn more in the [AI assistant implementation guide](./doc/AI笔记助手原理.md) and [DeepSeek setup guide](./doc/AI笔记助手接入DeepSeek步骤.md) (Chinese).
 
-External AI assistants can use the [Lite Note Skill](https://github.com/Mzlalal/idea-note/releases/latest/download/idea-note-skill.zip) to gain the same note-writing capabilities as the built-in AI assistant, including highlight blocks, interactive components, and more.
+External AI assistants can use the [Lite Note Skill](https://github.com/Mzlalal/lite-note/releases/latest/download/idea-note-skill.zip) to gain the same note-writing capabilities as the built-in AI assistant, including highlight blocks, interactive components, and more.
 
 ### Encrypting notes
 

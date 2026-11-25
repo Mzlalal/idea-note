@@ -2,15 +2,21 @@
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-case "$(uname -m)" in
-  arm64) arch=aarch64 ;;
-  x86_64) arch=x64 ;;
+target="${1:-}"
+case "${target:-$(uname -m)}" in
+  arm64|aarch64-apple-darwin) arch=aarch64 ;;
+  x86_64|x86_64-apple-darwin) arch=x64 ;;
   *) echo "Unsupported macOS architecture" >&2; exit 1 ;;
 esac
 
-npm run tauri build -- --bundles app
-
-bundle="$PWD/src-tauri/target/release/bundle"
+bundle="$PWD/src-tauri/target"
+if [[ -n "$target" ]]; then
+  npm run tauri build -- --bundles app --target "$target"
+  bundle="$bundle/$target"
+else
+  npm run tauri build -- --bundles app
+fi
+bundle="$bundle/release/bundle"
 app="$bundle/macos/Lite Note.app"
 plist="$app/Contents/Info.plist"
 identifier=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$plist")

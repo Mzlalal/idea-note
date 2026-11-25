@@ -12,8 +12,8 @@
   <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux" />
 </p>
 <p align="center">
-  <a href="https://github.com/Mzlalal/idea-note/releases/latest"><img src="https://img.shields.io/github/v/release/Mzlalal/idea-note?display_name=tag&style=flat-square&logo=github&label=version&color=0ea5e9" alt="Latest release" /></a>
-  <a href="https://github.com/Mzlalal/idea-note/releases"><img src="https://img.shields.io/github/downloads/Mzlalal/idea-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
+  <a href="https://github.com/Mzlalal/lite-note/releases/latest"><img src="https://img.shields.io/github/v/release/Mzlalal/lite-note?display_name=tag&style=flat-square&logo=github&label=version&color=0ea5e9" alt="Latest release" /></a>
+  <a href="https://github.com/Mzlalal/lite-note/releases"><img src="https://img.shields.io/github/downloads/Mzlalal/lite-note/total?style=flat-square&logo=github&label=downloads&color=10b981" alt="Total downloads" /></a>
 </p>
 
 **Lite Note** 是一款轻量简洁的笔记应用，集Markdown编辑器、AI 助手、代码运行、内容加密与 Git 同步于一体，支持 Windows、MacOS 和 Linux 平台。
@@ -42,17 +42,17 @@
 
 ### 安装
 
-本仓库发布的 macOS 和 Windows 下载包见 [Lite Note Releases](https://github.com/Mzlalal/idea-note/releases)。
+本仓库发布的 macOS 和 Windows 下载包见 [Lite Note Releases](https://github.com/Mzlalal/lite-note/releases)。
 
 | 系统 | 文件 | 说明 |
 | :--- | :--- | :--- |
-| **Windows** | **x64**：[安装包](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_windows_x64_setup.exe) \| [免安装包](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_windows_x64.zip)<br>**x86**：[安装包](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_windows_x86_setup.exe) \| [免安装包](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_windows_x86.zip) | 大多数电脑选 x64<br>32 位系统选 x86 |
-| **MacOS** | **Apple Silicon**：[安装包](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_macos_aarch64.dmg) \| [应用包压缩](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_macos_aarch64.app.tar.gz)<br>**Intel**：[安装包](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_macos_x64.dmg) \| [应用包压缩](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_macos_x64.app.tar.gz) | M芯片选 Apple Silicon<br>Intel 芯片选 Intel  |
-| **Linux** | **安装包**：[deb](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_linux_amd64.deb) \| [rpm](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_linux_x86_64.rpm)<br>**免安装**：[AppImage](https://github.com/Mzlalal/idea-note/releases/latest/download/Lite.Note_1.3.3_linux_amd64.AppImage) | Ubuntu/Debian/Linux Mint选deb<br>Fedora/RHEL/CentOS Stream/openSUSE选rpm |
+| **Windows** | **x64**：[安装包](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_windows_x64_setup.exe) \| [免安装包](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_windows_x64.zip)<br>**x86**：[安装包](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_windows_x86_setup.exe) \| [免安装包](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_windows_x86.zip) | 大多数电脑选 x64<br>32 位系统选 x86 |
+| **MacOS** | **Apple Silicon**：[安装包](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_aarch64.dmg) \| [应用包压缩](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_aarch64.app.tar.gz)<br>**Intel**：[安装包](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_x64.dmg) \| [应用包压缩](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_macos_x64.app.tar.gz) | M芯片选 Apple Silicon<br>Intel 芯片选 Intel  |
+| **Linux** | **安装包**：[deb](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_linux_amd64.deb) \| [rpm](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_linux_x86_64.rpm)<br>**免安装**：[AppImage](https://github.com/Mzlalal/lite-note/releases/latest/download/Lite.Note_1.3.3_linux_amd64.AppImage) | Ubuntu/Debian/Linux Mint选deb<br>Fedora/RHEL/CentOS Stream/openSUSE选rpm |
 
 | Skill | 下载 | 说明 |
 | :--- | :--- | :--- |
-| **AI 助手 Skill** | [ZIP](https://github.com/Mzlalal/idea-note/releases/latest/download/idea-note-skill.zip) | 解压后将 `idea-note/` 放入 AI 助手的 Skill 目录并加载，即可编写高亮块、可交互组件等功能 |
+| **AI 助手 Skill** | [ZIP](https://github.com/Mzlalal/lite-note/releases/latest/download/idea-note-skill.zip) | 解压后将 `idea-note/` 放入 AI 助手的 Skill 目录并加载，即可编写高亮块、可交互组件等功能 |
 
 MacOS 首次安装时如果遇到"无法打开"或"应用已损坏"之类的权限提示，可按下面方式处理：
 
@@ -129,7 +129,7 @@ xattr -rd com.apple.quarantine /Applications/Lite\ Note.app
 
 接入AI模型可参考： [doc/AI笔记助手接入DeepSeek步骤.md](./doc/AI笔记助手接入DeepSeek步骤.md)。
 
-外部 AI 助手也可通过 [Lite Note Skill](https://github.com/Mzlalal/idea-note/releases/latest/download/idea-note-skill.zip) 获得与内置 AI 助手同等的笔记编写能力，包括高亮块、可交互组件等功能。
+外部 AI 助手也可通过 [Lite Note Skill](https://github.com/Mzlalal/lite-note/releases/latest/download/idea-note-skill.zip) 获得与内置 AI 助手同等的笔记编写能力，包括高亮块、可交互组件等功能。
 
 
 ### 笔记加密
