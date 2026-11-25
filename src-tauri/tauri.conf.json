@@ -33,6 +33,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": { "../scripts/lite-note-mcp.py": "lite-note-mcp.py" },
     "fileAssociations": [
       {
         "ext": ["md", "markdown"],

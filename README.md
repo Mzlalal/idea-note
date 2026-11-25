@@ -257,17 +257,6 @@ npm run tauri build
 
 ## 通过 MCP 连接 AI
 
-使用 [uv](https://docs.astral.sh/uv/) 启动本地服务。将下面的配置加入支持 stdio 的 MCP 客户端，并填写脚本和笔记工作区的绝对路径。
+安装 [uv](https://docs.astral.sh/uv/) 后，在「设置 → MCP」开启「本地笔记 MCP」，选择笔记工作区，再复制所用客户端的配置。Codex 使用 `~/.codex/config.toml`，Claude Code 使用项目中的 `.mcp.json`。开关默认关闭，关闭后已连接的客户端也会拒绝后续笔记操作。
 
-```json
-{
-  "mcpServers": {
-    "lite-note": {
-      "command": "uv",
-      "args": ["run", "--script", "/path/to/idea-note/scripts/lite-note-mcp.py", "/path/to/notes", "--write"]
-    }
-  }
-}
-```
-
-服务可以搜索和读取工作区内已经保存的 UTF-8 Markdown 文件。加入 `--write` 可新建笔记或更新已有笔记。更新时使用读取工具返回的版本，文件已经变化时请重新读取。写入新目录前先创建对应文件夹。
+服务可以搜索和读取工作区内已经保存的 UTF-8 Markdown 文件。在复制配置前开启「允许写入笔记」 可新建笔记或更新已有笔记。更新时使用读取工具返回的版本，文件已经变化时请重新读取。写入新目录前先创建对应文件夹。

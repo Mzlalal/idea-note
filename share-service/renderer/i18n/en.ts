@@ -1,5 +1,14 @@
 // Chinese source keys keep the original interface available as a complete fallback.
 export default {
+  "复制配置": "Copy configuration",
+  "此选项应用于新复制的配置": "Applies to newly copied configurations",
+  "允许写入笔记": "Allow note edits",
+  "选择文件夹": "Choose folder",
+  "请选择笔记文件夹": "Choose a notes folder",
+  "MCP 工作区": "MCP workspace",
+  "连接外部 AI 客户端": "Connect external AI clients",
+  "允许 MCP 客户端访问指定工作区的笔记": "Allow MCP clients to access notes in the selected workspace",
+  "本地笔记 MCP": "Local Note MCP",
   "跟随系统": "Follow system",
   "无法打开文档：{{0}}": "Could not open the document: {{0}}",
   "macOS 面板设置失败：{{0}}": "Could not update macOS panel settings: {{0}}",

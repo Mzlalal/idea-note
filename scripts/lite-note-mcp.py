@@ -14,6 +14,7 @@ from mcp.server.fastmcp import FastMCP
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("workspace", type=Path)
+parser.add_argument("--access-file", type=Path, required=True, help="MCP access file shown in Lite Note settings")
 parser.add_argument("--write", action="store_true", help="Enable note creation and updates")
 options = parser.parse_args()
 root = options.workspace.resolve(strict=True)
@@ -22,6 +23,15 @@ if not root.is_dir():
 
 server = FastMCP("Lite Note")
 extensions = {".md", ".markdown"}
+
+
+def require_access() -> None:
+    try:
+        value = options.access_file.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        value = ""
+    if value.strip() != "true":
+        raise PermissionError("Enable Local Note MCP in Lite Note settings")
 
 
 def note_path(relative_path: str) -> Path:
@@ -45,6 +55,7 @@ def revision(data: bytes) -> str:
 @server.tool()
 def search_notes(query: str, limit: int = 20) -> list[dict[str, str]]:
     """Search saved Markdown titles and body text with a case-insensitive substring."""
+    require_access()
     term = query.strip().casefold()
     if not term or not 1 <= limit <= 100:
         raise ValueError("Provide a search term and a limit from 1 to 100")
@@ -70,6 +81,7 @@ def search_notes(query: str, limit: int = 20) -> list[dict[str, str]]:
 @server.tool()
 def read_note(path: str) -> dict[str, str]:
     """Read a saved Markdown note and return its content and revision."""
+    require_access()
     target = note_path(path)
     if not target.is_file():
         raise ValueError("Note does not exist")
@@ -81,6 +93,7 @@ if options.write:
     @server.tool()
     def write_note(path: str, content: str, expected_revision: str | None = None) -> dict[str, str]:
         """Create a new note or replace a saved note using the revision returned by read_note."""
+        require_access()
         target = note_path(path)
         data = content.encode("utf-8")
         if expected_revision is None:

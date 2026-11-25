@@ -173,6 +173,8 @@ pub fn run() {
         .manage(vault)
         .manage(pending)
         .invoke_handler(tauri::generate_handler![
+            app_data::mcp_access,
+            app_data::set_mcp_access,
             #[cfg(target_os = "macos")]
             macos_panels::macos_panel_settings,
             #[cfg(target_os = "macos")]

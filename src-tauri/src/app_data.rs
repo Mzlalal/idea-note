@@ -254,3 +254,43 @@ pub fn code_runners_load(app: AppHandle) -> Result<String, String> {
 pub fn code_runners_save(app: AppHandle, json: String) -> Result<(), String> {
     save_blob(&app, "code-runners.json", json)
 }
+
+const MCP_ACCESS_FILE: &str = "mcp-access.json";
+
+#[derive(serde::Serialize)]
+pub struct McpAccess {
+    enabled: bool,
+    config_path: PathBuf,
+    script_path: PathBuf,
+}
+
+#[tauri::command]
+pub fn mcp_access(app: AppHandle) -> Result<McpAccess, String> {
+    let config_path = config_file(&app, MCP_ACCESS_FILE)?;
+    let enabled = match fs::read_to_string(&config_path) {
+        Ok(value) => value.trim() == "true",
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(error) => return Err(format!("{}: {error}", config_path.display())),
+    };
+    let script_path = app
+        .path()
+        .resolve("lite-note-mcp.py", tauri::path::BaseDirectory::Resource)
+        .map_err(|error| error.to_string())?;
+    Ok(McpAccess { enabled, config_path, script_path })
+}
+
+#[tauri::command]
+pub fn set_mcp_access(app: AppHandle, enabled: bool) -> Result<(), String> {
+    use std::io::Write;
+
+    let path = config_file(&app, MCP_ACCESS_FILE)?;
+    let dir = path.parent().ok_or_else(|| format!("Invalid config path: {}", path.display()))?;
+    let save = || -> Result<(), std::io::Error> {
+        fs::create_dir_all(dir)?;
+        let mut file = tempfile::NamedTempFile::new_in(dir)?;
+        file.write_all(if enabled { b"true" } else { b"false" })?;
+        file.persist(&path)?;
+        Ok(())
+    };
+    save().map_err(|error| format!("{}: {error}", path.display()))
+}

@@ -14,6 +14,7 @@ import {
   Copy,
   DownloadCloud,
   FolderOpen,
+  Combine,
   GitBranch,
   Image as ImageIcon,
   Keyboard,
@@ -149,6 +150,7 @@ type TabId =
   | "attachments"
   | "coderun"
   | "models"
+  | "mcp"
   | "sync"
   | "security";
 
@@ -167,6 +169,7 @@ const tabs: Tab[] = [
   { id: "attachments", get label() { return tr("图片/附件"); }, get caption() { return tr("粘贴文件的保存目录"); }, icon: <ImageIcon size={16} /> },
   { id: "coderun", get label() { return tr("代码块执行"); }, get caption() { return tr("可运行的代码块语言"); }, icon: <Play size={16} /> },
   { id: "models", get label() { return tr("AI笔记助手"); }, get caption() { return tr("模型、字号与 API Key"); }, icon: <Bot size={16} /> },
+  { id: "mcp", label: "MCP", get caption() { return tr("连接外部 AI 客户端"); }, icon: <Combine size={16} /> },
   { id: "sync", get label() { return tr("远程同步"); }, get caption() { return tr("Git 仓库同步"); }, icon: <ArrowDownUp size={16} /> },
   { id: "security", get label() { return tr("加密"); }, get caption() { return tr("笔记内容加密口令"); }, icon: <Lock size={16} /> },
 ];
@@ -579,6 +582,7 @@ export function SettingsWindow() {
               setAiSessionHistoryLimit={setAiSessionHistoryLimit}
             />
           )}
+          {activeTab === "mcp" && <McpAccessSetting />}
           {activeTab === "sync" && <SyncTab />}
           {activeTab === "security" && <SecurityTab />}
         </div>
@@ -2008,6 +2012,105 @@ const uid = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+type McpAccess = {
+  enabled: boolean;
+  config_path: string;
+  script_path: string;
+};
+
+function McpAccessSetting() {
+  const [workspace, setWorkspace] = useState(() => new URLSearchParams(window.location.search).get("ws") ?? "");
+  const [writable, setWritable] = useState(false);
+  const [copied, setCopied] = useState("");
+  const [access, setAccess] = useState<McpAccess>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    invoke<McpAccess>("mcp_access").then((value) => {
+      if (active) setAccess(value);
+    }).catch((reason) => {
+      if (active) setError(String(reason));
+    });
+    return () => { active = false; };
+  }, []);
+
+  async function update(enabled: boolean) {
+    if (!access) return;
+    setBusy(true);
+    setError("");
+    try {
+      await invoke("set_mcp_access", { enabled });
+      setAccess({ ...access, enabled });
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function chooseWorkspace() {
+    try {
+      const path = await open({ directory: true, multiple: false, defaultPath: workspace || undefined });
+      if (typeof path === "string") {
+        setWorkspace(path);
+        setCopied("");
+      }
+    } catch (reason) {
+      setError(String(reason));
+    }
+  }
+
+  async function copyConfiguration(client: "Codex" | "Claude Code") {
+    if (!access?.enabled || !workspace) return;
+    const args = ["run", "--script", access.script_path, workspace, "--access-file", access.config_path];
+    if (writable) args.push("--write");
+    const config = client === "Codex"
+      ? `[mcp_servers.lite-note]\ncommand = "uv"\nargs = ${JSON.stringify(args)}\n`
+      : JSON.stringify({ mcpServers: { "lite-note": { type: "stdio", command: "uv", args } } }, null, 2);
+    try {
+      await copyText(config);
+      setCopied(client);
+    } catch (reason) {
+      setError(String(reason));
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <Row title={tr("本地笔记 MCP")} desc={tr("允许 MCP 客户端访问指定工作区的笔记")}>
+          <Toggle checked={access?.enabled ?? false} disabled={!access || busy} onChange={update} />
+        </Row>
+        {access?.enabled && (
+          <>
+            <Row title={tr("MCP 工作区")} desc={workspace || tr("请选择笔记文件夹")}>
+              <TextButton onClick={chooseWorkspace}>{tr("选择文件夹")}</TextButton>
+            </Row>
+            <Row title={tr("允许写入笔记")} desc={tr("此选项应用于新复制的配置")}>
+              <Toggle checked={writable} onChange={(value) => { setWritable(value); setCopied(""); }} />
+            </Row>
+          </>
+        )}
+      </Card>
+      {error && <p role="alert" className="text-xs" style={{ color: "var(--text)" }}>{error}</p>}
+      {access?.enabled && (
+        <div className="grid grid-cols-2 gap-3">
+          {(["Codex", "Claude Code"] as const).map((client) => (
+            <Card key={client}>
+              <Row title={client} desc={client === "Codex" ? "~/.codex/config.toml" : ".mcp.json"}>
+                <TextButton disabled={!workspace} onClick={() => copyConfiguration(client)}>
+                  {copied === client ? tr("已复制") : tr("复制配置")}
+                </TextButton>
+              </Row>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const PROVIDER_LABEL: Record<AiProvider, string> = {
   get openai() { return tr("OpenAI 兼容"); },
