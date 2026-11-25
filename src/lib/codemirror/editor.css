@@ -5,3 +5,67 @@
   display: block;
   width: fit-content;
 }
+
+.cm-content .cm-md-image-wrap,
+.cm-content .cm-md-image-line .cm-md-image-wrap {
+  position: relative;
+  box-sizing: border-box;
+  width: min(180px, 100%);
+  height: calc(3 * var(--editor-font-size) * var(--editor-line-height));
+  background: var(--code-bg);
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.cm-content .cm-md-image-wrap > .cm-md-image:not([hidden]) {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+}
+
+.cm-content .cm-md-image-wrap > .cm-md-image-caption {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  margin: 0;
+  padding: 0 4px;
+  background: var(--bg-elev);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-image-preview {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  max-width: 94vw;
+  max-height: 90vh;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.note-image-preview::backdrop {
+  background: rgb(0 0 0 / 70%);
+}
+
+.note-image-preview > img {
+  display: block;
+  max-width: 94vw;
+  max-height: 90vh;
+  object-fit: contain;
+}
+
+.note-image-preview > button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--bg-elev);
+  color: var(--text);
+}

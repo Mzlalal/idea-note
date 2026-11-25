@@ -153,6 +153,8 @@ function restoreFoldEffects(state: EditorState, snapshot?: FoldSnapshot) {
 export function CodeMirrorEditor({ active = true }: { active?: boolean }) {
   useLanguage();
   const hostRef = useRef<HTMLDivElement>(null);
+  const imageDialog = useRef<HTMLDialogElement>(null);
+  const previewImage = useRef<HTMLImageElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const activeRef = useRef(active);
   activeRef.current = active;
@@ -507,9 +509,34 @@ export function CodeMirrorEditor({ active = true }: { active?: boolean }) {
     });
   };
 
+  const openImagePreview = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const target = event.target;
+    if (!(target instanceof Element) || target.closest("button")) return;
+    const image = target.closest(".cm-md-image-wrap")?.querySelector<HTMLImageElement>(".cm-md-image");
+    const dialog = imageDialog.current;
+    const preview = previewImage.current;
+    if (!image || image.hidden || !dialog || !preview || dialog.open) return;
+    preview.src = image.currentSrc || image.src;
+    preview.alt = image.alt;
+    dialog.showModal();
+  };
+
   return (
     <>
-      <div ref={hostRef} className="cm-host" onContextMenu={onContextMenu} />
+      <div ref={hostRef} className="cm-host" onClick={openImagePreview} onContextMenu={onContextMenu} />
+      <dialog
+        ref={imageDialog}
+        className="note-image-preview"
+        aria-label={tr("预览图片")}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) event.currentTarget.close();
+        }}
+        onClose={() => previewImage.current?.removeAttribute("src")}
+      >
+        <button type="button" onClick={() => imageDialog.current?.close()}>{tr("关闭")}</button>
+        <img ref={previewImage} alt="" referrerPolicy="no-referrer" />
+      </dialog>
       {menu && <EditorContextMenu menu={menu} onClose={() => setMenu(null)} />}
     </>
   );

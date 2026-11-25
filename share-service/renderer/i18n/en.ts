@@ -226,6 +226,7 @@ export default {
   "笔记内容加密口令": "Password for encrypted note content",
   "设置": "Settings",
   "关闭": "Close",
+  "预览图片": "Preview image",
   "界面缩放": "Interface zoom",
   "放大或缩小整个应用界面": "Scale the entire application interface",
   "字号": "Font size",
