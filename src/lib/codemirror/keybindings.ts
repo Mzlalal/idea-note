@@ -32,6 +32,7 @@ import {
   toggleComment,
   cursorMatchingBracket,
 } from "@codemirror/commands";
+import { ensureSyntaxTree } from "@codemirror/language";
 import { MARKDOWN_ACTIONS } from "./markdownActions";
 import { openSearchPanel, searchKeymap } from "@codemirror/search";
 import { openSearchWithReplace } from "./searchPanel";
@@ -48,6 +49,30 @@ const PLATFORM: Platform =
         : "linux";
 
 const IS_MAC = PLATFORM === "mac";
+
+function selectCodeBody(view: EditorView): boolean {
+  const { state } = view;
+  if (state.selection.ranges.length !== 1) return false;
+  const { from, to } = state.selection.main;
+  const tree = ensureSyntaxTree(state, to, 30);
+  let block = tree?.resolveInner(from, -1) ?? null;
+  while (block && block.name !== "FencedCode") block = block.parent;
+  if (!block) return false;
+
+  const marks = block.getChildren("CodeMark");
+  if (!marks.length) return false;
+  const opening = state.doc.lineAt(marks[0].from);
+  if (opening.number === state.doc.lines) return false;
+  const start = state.doc.line(opening.number + 1).from;
+  const closing = marks[1] && state.doc.lineAt(marks[1].from);
+  const end = closing ? state.doc.line(closing.number - 1).to : block.to;
+  if (end < start || from < start || to > end) return false;
+
+  view.dispatch({ selection: { anchor: start, head: end }, userEvent: "select" });
+  return true;
+}
+
+const selectAllInContext: Command = (view) => selectCodeBody(view) || selectAll(view);
 
 /** A rebindable shortcut as shown in Settings (快捷键 tab). */
 export interface ShortcutDef {
@@ -85,7 +110,7 @@ export const EDITOR_COMMANDS: EditorCommandDef[] = [
   { id: "undo", get label() { return tr("撤销"); }, get desc() { return tr("撤销上一次编辑"); }, defaultKey: "Mod-z", run: undo, group: "general" },
   // Redo: ⌘⇧Z on mac, Ctrl+Y on Windows, Ctrl+Shift+Z on Linux.
   { id: "redo", get label() { return tr("重做"); }, get desc() { return tr("重做被撤销的编辑"); }, defaultKey: "Mod-y", mac: "Mod-Shift-z", linux: "Ctrl-Shift-z", run: redo, group: "general" },
-  { id: "selectAll", get label() { return tr("全选"); }, get desc() { return tr("选中整个文档"); }, defaultKey: "Mod-a", run: selectAll, group: "general" },
+  { id: "selectAll", get label() { return tr("全选"); }, get desc() { return tr("选中当前代码块或整个文档"); }, defaultKey: "Mod-a", run: selectAllInContext, group: "general" },
   // Select line: ⌃L on mac, Alt+L on Windows/Linux.
   { id: "selectLine", get label() { return tr("选中整行"); }, get desc() { return tr("选中光标所在行"); }, defaultKey: "Alt-l", mac: "Ctrl-l", run: selectLine, group: "general" },
   { id: "selectParentSyntax", get label() { return tr("选中父级语法"); }, get desc() { return tr("向外扩展选区到父级语法节点"); }, defaultKey: "Mod-Shift-i", run: selectParentSyntax, group: "general" },
@@ -153,7 +178,7 @@ export const APP_COMMANDS: ShortcutDef[] = [
 ];
 
 /** Run-functions the registry owns, so we can strip their stock bindings. */
-const managedRuns = new Set<Command>(EDITOR_COMMANDS.map((c) => c.run));
+const managedRuns = new Set<Command>([selectAll, ...EDITOR_COMMANDS.map((c) => c.run)]);
 
 /** This platform's built-in default for a command. */
 export function platformDefault(cmd: ShortcutDef): string {
@@ -196,6 +221,10 @@ export function buildEditorKeymap(
       preventDefault: true,
     };
   });
+
+  if (IS_MAC && includeMarkdown && !overrides.selectAll?.trim()) {
+    custom.push({ key: "Ctrl-a", run: selectCodeBody });
+  }
 
   const rest = [...searchKeymap, ...defaultKeymap, ...historyKeymap].filter(
     (b) => !b.run || !managedRuns.has(b.run),

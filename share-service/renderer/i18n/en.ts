@@ -1083,7 +1083,7 @@ export default {
   "直接打开并聚焦替换框": "Open and focus Replace",
   "撤销上一次编辑": "Undo the last edit",
   "重做被撤销的编辑": "Redo the undone edit",
-  "选中整个文档": "Select the entire document",
+  "选中当前代码块或整个文档": "Select the current code block or the entire document",
   "选中整行": "Select line",
   "选中光标所在行": "Select the line at the cursor",
   "选中父级语法": "Select parent syntax",
