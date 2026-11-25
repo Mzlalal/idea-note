@@ -79,6 +79,11 @@ export function bindResourcePreview(
     wrap.setAttribute('role','link');wrap.tabIndex=0;
     wrap.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();openLinkTargetSafe(url);}});
   }
+  // Reused image widgets update the DOM range as surrounding text moves.
+  const currentRange = () => ({
+    from: Number(wrap.dataset.resourceFrom),
+    to: Number(wrap.dataset.resourceTo),
+  });
   let editedOnPress = false;
   wrap.addEventListener("mousedown", (event) => {
     if (event.button !== 0) return;
@@ -88,6 +93,7 @@ export function bindResourcePreview(
       openLinkTargetSafe(url);
       return;
     }
+    const range = currentRange();
     view.dispatch({
       selection: { anchor: event.shiftKey ? view.state.selection.main.anchor : range.from, head: range.to },
       effects: setResourceSource.of(null),
@@ -122,8 +128,9 @@ export function bindResourcePreview(
   button.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
+    const range = currentRange();
     view.dispatch({
-      effects: setResourceSource.of({ from: range.from, to: range.to }),
+      effects: setResourceSource.of(range),
       selection: { anchor: range.from },
       scrollIntoView: true,
     });

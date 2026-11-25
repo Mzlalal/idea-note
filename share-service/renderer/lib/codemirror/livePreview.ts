@@ -159,15 +159,14 @@ class ImageWidget extends WidgetType {
     super();
   }
   eq(o: ImageWidget) {
-    return o.selected === this.selected && this.sameImage(o);
+    return o.selected === this.selected && o.from === this.from &&
+      o.to === this.to && this.sameImage(o);
   }
   sameImage(o: ImageWidget) {
     return (
       o.url === this.url &&
       o.alt === this.alt &&
       o.title === this.title &&
-      o.from === this.from &&
-      o.to === this.to &&
       o.readOnly === this.readOnly &&
       o.size.width === this.size.width &&
       o.size.height === this.size.height
@@ -178,6 +177,8 @@ class ImageWidget extends WidgetType {
   // everything below it) flashed on every click.
   updateDOM(dom: HTMLElement, _view: EditorView, prev: ImageWidget) {
     if (!this.sameImage(prev)) return false;
+    dom.dataset.resourceFrom = String(this.from);
+    dom.dataset.resourceTo = String(this.to);
     dom.classList.toggle("cm-md-resource-selected", this.selected);
     return true;
   }

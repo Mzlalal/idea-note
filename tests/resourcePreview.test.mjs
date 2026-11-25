@@ -12,7 +12,11 @@ class Element {
   listeners = new Map();
   classList = { add() {}, toggle() {} };
   addEventListener(type, callback) { this.listeners.set(type, callback); }
-  setAttribute() {}
+  dataset = {};
+  setAttribute(name, value) {
+    if (name === "data-resource-from") this.dataset.resourceFrom = value;
+    if (name === "data-resource-to") this.dataset.resourceTo = value;
+  }
   prepend(child) { this.children.unshift(child); }
   fire(type, extra = {}) {
     this.listeners.get(type)?.({ button: 0, preventDefault() {}, stopPropagation() {}, ...extra });
