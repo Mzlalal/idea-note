@@ -7,11 +7,11 @@ import type { FileNode } from "./fs";
 const cache = new Map<string, Promise<string | null>>();
 export const clearNoteExcerpts = () => cache.clear();
 
-function readExcerpt(node: FileNode): Promise<string | null> {
-  const key = `${node.path}\0${node.mtime}`;
+function readExcerpt(path: string, mtime: FileNode["mtime"]): Promise<string | null> {
+  const key = `${path}\0${mtime}`;
   let result = cache.get(key);
   if (!result) {
-    result = invoke<string | null>("note_excerpt", { path: node.path });
+    result = invoke<string | null>("note_excerpt", { path });
     cache.set(key, result);
     void result.catch(() => { if (cache.get(key) === result) cache.delete(key); });
     if (cache.size > 512) cache.delete(cache.keys().next().value!);
@@ -22,21 +22,21 @@ function readExcerpt(node: FileNode): Promise<string | null> {
 /** Read content only when a mounted row approaches the scroll viewport. */
 export function useNoteExcerpt(node: FileNode) {
   const ref = useRef<HTMLDivElement>(null);
-  const [excerpt, setExcerpt] = useState<string | null>(null);
+  const { path, mtime } = node;
+  const [loaded, setLoaded] = useState<{ path: string; excerpt: string | null } | null>(null);
   useEffect(() => {
-    setExcerpt(null);
     const element = ref.current;
     if (!element) return;
     let alive = true;
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting)) return;
       observer.disconnect();
-      void readExcerpt(node).then((value) => {
-        if (alive) setExcerpt(value);
+      void readExcerpt(path, mtime).then((value) => {
+        if (alive) setLoaded({ path, excerpt: value });
       }).catch(() => {});
     }, { root: element.closest("[data-sidebar-list]"), rootMargin: "160px" });
     observer.observe(element);
     return () => { alive = false; observer.disconnect(); };
-  }, [node]);
-  return { ref, excerpt };
+  }, [path, mtime]);
+  return { ref, excerpt: loaded?.path === path ? loaded.excerpt : null };
 }
