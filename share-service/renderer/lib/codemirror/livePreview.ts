@@ -84,7 +84,7 @@ const HEADING_RE = /^(#{1,6})\s/;
 /** A line containing only an image (spaced paths included). Used to drop the
  *  heading→body gap and give standalone images a definite-width container.
  *  An image followed by text must remain inline. */
-const IMAGE_LINE_RE = /^\s*!\[[^\]\n]*\]\([^)\n]+\)\s*$/;
+export const IMAGE_LINE_RE = /^\s*!\[[^\]\n]*\]\([^)\n]+\)\s*$/;
 
 /**
  * Interior line numbers of multi-line `$$ … $$` math blocks, where a blank line
@@ -159,11 +159,12 @@ class ImageWidget extends WidgetType {
     super();
   }
   eq(o: ImageWidget) {
-    return o.selected === this.selected && o.from === this.from &&
-      o.to === this.to && this.sameImage(o);
+    return o.selected === this.selected && this.sameImage(o) &&
+      (!this.readOnly || (o.from === this.from && o.to === this.to));
   }
   sameImage(o: ImageWidget) {
     return (
+      o.to - o.from === this.to - this.from &&
       o.url === this.url &&
       o.alt === this.alt &&
       o.title === this.title &&
@@ -223,7 +224,7 @@ class ImageWidget extends WidgetType {
     }
 
     bindResourcePreview(wrap, view, this, this.url, tr("图片"), this.selected,
-      () => openImagePrompt(view));
+      () => openImagePrompt(view), !this.readOnly);
     return wrap;
   }
   ignoreEvent() {

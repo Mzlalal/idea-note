@@ -28,6 +28,7 @@ import { buildEditorKeymap, commandTitle } from "../../lib/codemirror/keybinding
 import { EditorContextMenu, type EditorMenuState } from "./EditorContextMenu";
 import { tablePreview } from "../../lib/codemirror/tablePreview";
 import { markdownLinkClick } from "../../lib/codemirror/linkClick";
+import { resourceRangeAtDOM } from "../../lib/codemirror/resourcePreview";
 import { resourceClipboard } from "../../lib/codemirror/resourceClipboard";
 import { htmlPreview } from "../../lib/codemirror/htmlPreview";
 import { detailsBlock } from "../../lib/codemirror/detailsBlock";
@@ -487,8 +488,7 @@ export function CodeMirrorEditor({ active = true }: { active?: boolean }) {
     const view = viewRef.current;
     if (!view) return;
     const resource = (e.target as HTMLElement).closest?.(".cm-md-resource");
-    const resourceFrom = Number(resource?.getAttribute("data-resource-from"));
-    const resourceTo = Number(resource?.getAttribute("data-resource-to"));
+    const { from: resourceFrom, to: resourceTo } = resource ? resourceRangeAtDOM(view, resource) : { from: -1, to: -1 };
     const onResource = resource && Number.isInteger(resourceFrom) && Number.isInteger(resourceTo) &&
       resourceFrom >= 0 && resourceTo > resourceFrom && resourceTo <= view.state.doc.length;
     const pos = onResource ? resourceFrom : view.posAtCoords({ x: e.clientX, y: e.clientY });

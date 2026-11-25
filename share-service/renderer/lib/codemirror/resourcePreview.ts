@@ -29,6 +29,18 @@ export const resourceSourceField = StateField.define<ResourceRange | null>({
   },
 });
 
+export function resourceRangeAtDOM(view: EditorView, element: Element): ResourceRange {
+  const length = element.getAttribute("data-resource-length");
+  if (length !== null) {
+    const from = view.posAtDOM(element);
+    return { from, to: from + Number(length) };
+  }
+  return {
+    from: Number(element.getAttribute("data-resource-from")),
+    to: Number(element.getAttribute("data-resource-to")),
+  };
+}
+
 export function resourceSourceVisible(state: EditorState, from: number): boolean {
   return !state.readOnly && state.field(resourceSourceField, false)?.from === from;
 }
@@ -53,9 +65,11 @@ export const resourceSelectionHighlight = ViewPlugin.fromClass(class {
       key: this,
       read: (view) => {
         const { ranges, main } = view.state.selection;
-        return ranges.length === 1 && !main.empty && !!view.contentDOM.querySelector(
-          `.cm-md-resource-selected[data-resource-from="${main.from}"][data-resource-to="${main.to}"]`,
-        );
+        if (ranges.length !== 1 || main.empty) return false;
+        return Array.from(view.contentDOM.querySelectorAll(".cm-md-resource-selected")).some((element) => {
+          const { from, to } = resourceRangeAtDOM(view, element);
+          return from === main.from && to === main.to;
+        });
       },
       write: (only, view) => view.scrollDOM.classList.toggle("cm-resource-selection", only),
     });
@@ -70,6 +84,7 @@ export function bindResourcePreview(
   wrap: HTMLElement, view: EditorView, range: ResourceRange,
   url: string, label: string, selected: boolean,
   onEdit?: () => void,
+  tracksDOM = false,
 ): void {
   wrap.classList.add("cm-md-resource");
   wrap.setAttribute("data-resource-from", String(range.from));
@@ -79,11 +94,11 @@ export function bindResourcePreview(
     wrap.setAttribute('role','link');wrap.tabIndex=0;
     wrap.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();openLinkTargetSafe(url);}});
   }
-  // Reused image widgets update the DOM range as surrounding text moves.
-  const currentRange = () => ({
+  if (tracksDOM) wrap.setAttribute("data-resource-length", String(range.to - range.from));
+  const currentRange = () => tracksDOM ? resourceRangeAtDOM(view, wrap) : {
     from: Number(wrap.dataset.resourceFrom),
     to: Number(wrap.dataset.resourceTo),
-  });
+  };
   let editedOnPress = false;
   wrap.addEventListener("mousedown", (event) => {
     if (event.button !== 0) return;

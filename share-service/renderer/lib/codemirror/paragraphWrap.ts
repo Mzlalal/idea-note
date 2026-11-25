@@ -14,7 +14,7 @@ import {
 } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 
-import { parseAdvanced } from "./livePreview";
+import { IMAGE_LINE_RE, parseAdvanced } from "./livePreview";
 import { highlightColorFromLine } from "../highlightBlock";
 
 /** A markdown hard break (`two trailing spaces`, trailing `\`, or a trailing
@@ -63,6 +63,8 @@ function buildSoftWraps(state: EditorState): DecorationSet {
         // A hard break keeps its line break.
         if (HARD_BREAK_RE.test(line.text)) continue;
         const next = doc.line(n + 1);
+        // Keep standalone images outside the surrounding editable text line.
+        if (!state.readOnly && (IMAGE_LINE_RE.test(line.text) || IMAGE_LINE_RE.test(next.text))) continue;
         // Swallow the "\n" plus the continuation line's leading indent, the way
         // a markdown soft break does, and render a single joining space.
         const lead = next.text.length - next.text.replace(/^\s+/, "").length;
@@ -83,7 +85,7 @@ function buildSoftWraps(state: EditorState): DecorationSet {
 const softWrapField = StateField.define<DecorationSet>({
   create: (state) => buildSoftWraps(state),
   update(deco, tr) {
-    if (tr.docChanged || tr.effects.some((e) => e.is(parseAdvanced)))
+    if (tr.docChanged || tr.startState.readOnly !== tr.state.readOnly || tr.effects.some((e) => e.is(parseAdvanced)))
       return buildSoftWraps(tr.state);
     return deco.map(tr.changes);
   },
