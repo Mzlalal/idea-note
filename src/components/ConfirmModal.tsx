@@ -33,8 +33,17 @@ export function ConfirmModal() {
     if (!confirm?.confirmOnEnter) return;
     const previous = document.activeElement;
     const primary = primaryRef.current;
+    const frame = requestAnimationFrame(() => {
+      if (document.activeElement === previous || document.activeElement === document.body) primary?.focus();
+    });
+    const onWindowFocus = () => {
+      if (document.activeElement === document.body) primary?.focus();
+    };
     primary?.focus();
+    window.addEventListener("focus", onWindowFocus);
     return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("focus", onWindowFocus);
       if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
     };
   }, [confirm]);
