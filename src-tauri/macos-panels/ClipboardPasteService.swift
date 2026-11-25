@@ -28,16 +28,23 @@ final class ClipboardPasteService {
       targetAvailable: targetApplication != nil)
     guard
       outcome == .pasteAndInsert,
-      let targetApplication,
-      targetApplication.activate(options: [])
+      let targetApplication
     else { return .pasteboardOnly }
 
-    let expectedBundleIdentifier = targetApplication.bundleIdentifier
-    Task { @MainActor in
-      try? await Task.sleep(for: .milliseconds(80))
-      guard NSWorkspace.shared.frontmostApplication?.bundleIdentifier == expectedBundleIdentifier
-      else { return }
-      Self.postPasteShortcut()
+    let pid = targetApplication.processIdentifier
+    if NSWorkspace.shared.frontmostApplication?.processIdentifier != pid,
+      !targetApplication.activate(options: []) { return .pasteboardOnly }
+
+    let changeCount = pasteboard.changeCount
+    Task { @MainActor [weak self] in
+      for _ in 0..<20 {
+        try? await Task.sleep(for: .milliseconds(50))
+        guard let self, self.pasteboard.changeCount == changeCount, !targetApplication.isTerminated else { return }
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid {
+          Self.postPasteShortcut(to: pid)
+          return
+        }
+      }
     }
     return outcome
   }
@@ -72,14 +79,14 @@ final class ClipboardPasteService {
     onPasteboardWrite?(pasteboard.changeCount)
   }
 
-  private static func postPasteShortcut() {
+  private static func postPasteShortcut(to pid: pid_t) {
     let source = CGEventSource(stateID: .combinedSessionState)
     let keyCode = CGKeyCode(kVK_ANSI_V)
     let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
     let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
     keyDown?.flags = .maskCommand
     keyUp?.flags = .maskCommand
-    keyDown?.post(tap: .cghidEventTap)
-    keyUp?.post(tap: .cghidEventTap)
+    keyDown?.postToPid(pid)
+    keyUp?.postToPid(pid)
   }
 }
