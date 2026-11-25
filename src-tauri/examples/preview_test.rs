@@ -46,7 +46,7 @@ fn main() {
                 .to_string_lossy(),
         );
     let mut context = tauri::generate_context!();
-    context.config_mut().identifier = "com.liubs.idea-note.previewtest".into();
+    context.config_mut().identifier = "com.mzlalal.lite-note.previewtest".into();
     context.config_mut().build.dev_url = Some(tauri::Url::parse("http://localhost:1427").unwrap());
     context.config_mut().app.windows = vec![tauri::utils::config::WindowConfig {
         label: "main-preview-test".into(),

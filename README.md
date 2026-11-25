@@ -219,12 +219,13 @@ npm install
 npm run tauri:dev
 ```
 
-调试版使用独立的应用标识 `com.liubs.idea-note.dev`，可与正式版同时运行，并且不共用应用数据目录。
+开发与正式构建共用应用标识。运行开发版前先退出已安装的 Lite Note。
 
 
 #### 3. 构建正式包
 ```bash
-npm run tauri build
+npm run package:macos  # macOS
+npm run tauri build    # Windows / Linux
 ```
 
 
@@ -253,7 +254,7 @@ npm run tauri build
 ### 打包与资源说明
 
 - 应用名称：`Lite Note`
-- 应用标识：`com.liubs.idea-note`
+- 应用标识：`com.mzlalal.lite-note`
 
 ## 通过 MCP 连接 AI
 

@@ -187,12 +187,13 @@ Start the desktop development application:
 npm run tauri:dev
 ```
 
-Development uses the separate application identifier `com.liubs.idea-note.dev`, allowing it to run alongside production with a separate data directory.
+Development and release builds share the application identifier. Quit the installed app before starting development.
 
 Build a release package:
 
 ```bash
-npm run tauri build
+npm run package:macos  # macOS
+npm run tauri build    # Windows / Linux
 ```
 
 ### Local AI test service
@@ -218,4 +219,4 @@ Run `npm run mock:ai` for a deterministic test service requiring no API key. Con
 ### Package information
 
 - Application name: `Lite Note`.
-- Application identifier: `com.liubs.idea-note`.
+- Application identifier: `com.mzlalal.lite-note`.
