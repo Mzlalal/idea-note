@@ -20,6 +20,14 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
     super.init()
 
     model.onDismiss = { [weak self] in self?.hide() }
+    model.onReleasePasteFocus = { [weak self] in
+      guard let self else { return }
+      if self.model.isPinned {
+        self.panel.resignKey()
+      } else {
+        self.hide()
+      }
+    }
     model.onPinChange = { [weak self] pinned in self?.applyPinnedLevel(pinned) }
     panel.delegate = self
     panel.hidesOnDeactivate = false

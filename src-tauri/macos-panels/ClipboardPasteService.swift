@@ -16,7 +16,8 @@ final class ClipboardPasteService {
   @discardableResult
   func paste(
     _ payload: ClipboardPayload,
-    into applicationBundleIdentifier: String?
+    into applicationBundleIdentifier: String?,
+    releasePanelFocus: () -> Void
   ) -> ClipboardPasteOutcome {
     write(payload)
 
@@ -24,13 +25,14 @@ final class ClipboardPasteService {
       NSRunningApplication.runningApplications(withBundleIdentifier: $0).first
     }
     let outcome = ClipboardPastePolicy.outcome(
-      accessibilityGranted: AXIsProcessTrusted(),
+      accessibilityGranted: AXIsProcessTrusted() && CGPreflightPostEventAccess(),
       targetAvailable: targetApplication != nil)
     guard
       outcome == .pasteAndInsert,
       let targetApplication
     else { return .pasteboardOnly }
 
+    releasePanelFocus()
     let pid = targetApplication.processIdentifier
     if NSWorkspace.shared.frontmostApplication?.processIdentifier != pid,
       !targetApplication.activate(options: []) { return .pasteboardOnly }
@@ -41,10 +43,11 @@ final class ClipboardPasteService {
         try? await Task.sleep(for: .milliseconds(50))
         guard let self, self.pasteboard.changeCount == changeCount, !targetApplication.isTerminated else { return }
         if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid {
-          Self.postPasteShortcut(to: pid)
+          Self.postPasteShortcut()
           return
         }
       }
+      NSLog("Lite Note clipboard: target process %d did not regain foreground focus", pid)
     }
     return outcome
   }
@@ -79,14 +82,14 @@ final class ClipboardPasteService {
     onPasteboardWrite?(pasteboard.changeCount)
   }
 
-  private static func postPasteShortcut(to pid: pid_t) {
+  private static func postPasteShortcut() {
     let source = CGEventSource(stateID: .combinedSessionState)
     let keyCode = CGKeyCode(kVK_ANSI_V)
     let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
     let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
     keyDown?.flags = .maskCommand
     keyUp?.flags = .maskCommand
-    keyDown?.postToPid(pid)
-    keyUp?.postToPid(pid)
+    keyDown?.post(tap: .cghidEventTap)
+    keyUp?.post(tap: .cghidEventTap)
   }
 }

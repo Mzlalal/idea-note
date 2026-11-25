@@ -1,3 +1,4 @@
+import ApplicationServices
 import AppKit
 import Combine
 import Foundation
@@ -15,6 +16,7 @@ final class ClipboardModel: ObservableObject {
   @Published private(set) var focusToken = 0
 
   var onDismiss: (() -> Void)?
+  var onReleasePasteFocus: (() -> Void)?
   var onPinChange: ((Bool) -> Void)?
 
   private let repository: ClipboardRepository?
@@ -111,7 +113,16 @@ final class ClipboardModel: ObservableObject {
           into: localTargetWindow,
           restoring: localTargetResponder)
       } else {
-        _ = pasteService.paste(payload, into: targetApplicationBundleIdentifier)
+        let outcome = pasteService.paste(payload, into: targetApplicationBundleIdentifier) { [weak self] in
+          self?.onReleasePasteFocus?()
+        }
+        if outcome == .pasteboardOnly {
+          errorMessage = AXIsProcessTrusted() && CGPreflightPostEventAccess()
+            ? "已复制，未能切回原应用，请手动按 ⌘V"
+            : "已复制，请在系统设置的辅助功能中允许 Lite Note 自动粘贴"
+          return
+        }
+        return
       }
       if state.shouldDismiss(after: .pasted) {
         onDismiss?()
