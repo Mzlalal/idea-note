@@ -147,12 +147,22 @@ interface Ref {
  *  the configured directory or note path contains spaces. */
 function insertRefs(view: EditorView, refs: Ref[], at?: number | null): void {
   if (refs.length === 0) return;
-  const text = refs
-    .map((r) => (r.isImage ? `![](<${r.link}>)` : `[${r.name}](<${r.link}>)`))
-    .join("\n");
   const range = view.state.selection.main;
   const from = at ?? range.from;
   const to = at ?? range.to;
+  let text = "";
+  for (const [index, ref] of refs.entries()) {
+    if (index > 0) text += ref.isImage || refs[index - 1].isImage ? "\n\n" : "\n";
+    text += ref.isImage ? `![](<${ref.link}>)` : `[${ref.name}](<${ref.link}>)`;
+  }
+  if (refs[0].isImage) {
+    const line = view.state.doc.lineAt(from);
+    if (from > line.from || (line.number > 1 && view.state.doc.line(line.number - 1).text.trim())) {
+      text = (from > line.from ? "\n\n" : "\n") + text;
+    }
+  }
+  // Place the caret on a new paragraph so further typing stays clear of the image.
+  if (refs[refs.length - 1].isImage) text += "\n\n";
   view.dispatch({
     changes: { from, to, insert: text },
     selection: EditorSelection.cursor(from + text.length),
