@@ -416,7 +416,7 @@ export function SettingsWindow() {
                     onChange={setEditorFontWeight}
                   />
                 </Row>
-                <Row title={tr("显示行号")} desc={tr("在 Markdown 源码模式和其他文本文件中显示")}>
+                <Row title={tr("显示行号")} desc={tr("在 Markdown 和其他文本文件中显示")}>
                   <Toggle checked={editorLineNumbers} onChange={setEditorLineNumbers} />
                 </Row>
                 <Row title={tr("用日期时间命名并自动保存")} desc={tr("新建笔记时自动使用年月日-时分秒作标题，编辑和关闭时自动保存")}>

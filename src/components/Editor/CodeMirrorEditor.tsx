@@ -88,20 +88,18 @@ const previewPlugins = [
 // "live" renders + editable, "source" drops rendering, "readonly" renders but
 // locks editing.
 //
-// Source mode shows the document as plain text, so it honours the same
-// 显示行号 setting the non-markdown editor does. Live and read-only modes never
-// do: their lines are rendered blocks (a diagram, a table, a wrapped
-// paragraph), and numbering those counts source lines nobody can see.
+// Markdown gutters use source positions even when a rendered block spans
+// multiple lines. The live editor shares the existing line-number setting.
 function modeExtensions(mode: MdViewMode, showLineNumbers: boolean) {
-  if (mode === "source")
-    return showLineNumbers ? [lineNumbers(), cmSourceGutterTheme] : [];
+  const gutter = showLineNumbers ? [lineNumbers(), cmSourceGutterTheme] : [];
+  if (mode === "source") return gutter;
   if (mode === "readonly")
     return [
       ...previewPlugins,
       EditorState.readOnly.of(true),
       EditorView.editable.of(false),
     ];
-  return previewPlugins;
+  return [...previewPlugins, ...gutter];
 }
 
 type FoldSnapshot = {

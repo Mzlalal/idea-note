@@ -240,7 +240,7 @@ export default {
   "字重": "Font weight",
   "编辑区正文的粗细；400 常规、500 中等、600 半粗": "Body text weight: 400 regular, 500 medium, 600 semibold",
   "显示行号": "Show line numbers",
-  "在 Markdown 源码模式和其他文本文件中显示": "Show in Markdown source mode and other text files",
+  "在 Markdown 和其他文本文件中显示": "Show in Markdown and other text files",
   "同时打开文件数": "Maximum open files",
   "编辑器标签栏最多保留的文件数，超出后自动关闭最早的": "Maximum number of editor tabs; the oldest closes when exceeded",
   "{{0}} 个": "{{0}} items",

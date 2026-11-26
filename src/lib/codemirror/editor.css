@@ -69,3 +69,22 @@
   background: var(--bg-elev);
   color: var(--text);
 }
+
+.cm-host .cm-content .cm-md-list {
+  padding-block: 0.12em;
+}
+
+.cm-host .cm-content .cm-md-ol-mark {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-soft);
+}
+
+.cm-host .cm-content .cm-md-blank {
+  height: 0.9em;
+  line-height: 0.9em;
+}
+
+.editor-compact .cm-host .cm-content .cm-md-blank {
+  height: 0.65em;
+  line-height: 0.65em;
+}

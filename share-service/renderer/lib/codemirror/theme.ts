@@ -79,7 +79,6 @@ export const cmPlainTextTheme = EditorView.theme({
     fontSize: "0.85em",
     fontVariantNumeric: "tabular-nums",
     color: "var(--text-muted)",
-    opacity: "0.5",
     transition: "color 0.12s ease, opacity 0.12s ease",
   },
   // Active line: band continues across the gutter, number turns accent.
@@ -91,7 +90,7 @@ export const cmPlainTextTheme = EditorView.theme({
   },
 });
 
-// Line-number gutter for markdown source mode (Settings › 编辑器 › 显示行号).
+// Line-number gutter for the Markdown editor (Settings › 编辑器 › 显示行号).
 // cmTheme keeps the prose layout centered, so the gutter sits at the scroller's
 // left edge and the content's own side padding forms the gap to the text —
 // only the numbers themselves need styling here. No border or panel fill: a
@@ -104,7 +103,6 @@ export const cmSourceGutterTheme = EditorView.theme({
     fontSize: "0.85em",
     fontVariantNumeric: "tabular-nums",
     color: "var(--text-muted)",
-    opacity: "0.5",
   },
 });
 
