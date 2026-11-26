@@ -73,12 +73,9 @@
   color: var(--text-soft);
 }
 
-.cm-host .cm-content .cm-md-blank {
-  height: 0.9em;
-  line-height: 0.9em;
-}
-
+/* Match the surrounding editor line height, including compact mode. */
+.cm-host .cm-content .cm-md-blank,
 .editor-compact .cm-host .cm-content .cm-md-blank {
-  height: 0.65em;
-  line-height: 0.65em;
+  height: auto;
+  line-height: inherit;
 }
