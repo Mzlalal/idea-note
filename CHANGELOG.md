@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.4
+
+**简体中文**
+
+- Markdown 支持一键整理导入格式、原位编辑和按源文显示行号。代码块内全选可选中代码正文。
+- 图片使用可点击预览的缩略卡片，支持右键编辑属性。改善粘贴、重复图片复用、撤销后的附件回收和输入时的渲染稳定性。
+- 稳定侧栏笔记摘要刷新，并简化复制绝对路径和相对路径的菜单入口。
+
+**English**
+
+- Clean up imported Markdown, edit it in place, and show source line numbers. Select all inside a code block selects its contents.
+- Images use clickable thumbnails with a context menu for editing properties. Improved image pasting, reuse, cleanup after undo, and rendering stability during typing.
+- Stabilized sidebar note excerpts and simplified menu access to absolute and relative paths.
+
 ## 1.3.3
 
 **简体中文**
