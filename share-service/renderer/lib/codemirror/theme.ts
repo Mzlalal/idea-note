@@ -91,16 +91,14 @@ export const cmPlainTextTheme = EditorView.theme({
 });
 
 // Line-number gutter for the Markdown editor (Settings › 编辑器 › 显示行号).
-// cmTheme keeps the prose layout centered, so the gutter sits at the scroller's
-// left edge and the content's own side padding forms the gap to the text —
-// only the numbers themselves need styling here. No border or panel fill: a
-// gutter panel 40px+ away from the text would read as a stray vertical rule.
 export const cmSourceGutterTheme = EditorView.theme({
+  ".cm-content": { paddingInlineStart: "16px" },
+  ".cm-gutters": { borderInlineEnd: "1px solid var(--border)" },
   ".cm-lineNumbers": { minWidth: "2.5em" },
   ".cm-lineNumbers .cm-gutterElement": {
-    padding: "0 6px 0 12px",
+    padding: "0 8px 0 12px",
     textAlign: "right",
-    fontSize: "0.85em",
+    fontSize: "inherit",
     fontVariantNumeric: "tabular-nums",
     color: "var(--text-muted)",
   },
