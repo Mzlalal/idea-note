@@ -18,6 +18,7 @@ import {
   codeRunnersChanged,
   defaultComponentFoldEffects,
   livePreview,
+  livePreviewLineNumbers,
   syntaxParseDriver,
 } from "../../lib/codemirror/livePreview";
 import { markdownAutoCloseFences } from "../../lib/codemirror/autoClose";
@@ -99,7 +100,12 @@ function modeExtensions(mode: MdViewMode, showLineNumbers: boolean) {
       EditorState.readOnly.of(true),
       EditorView.editable.of(false),
     ];
-  return [...previewPlugins, ...gutter];
+  if (!showLineNumbers) return previewPlugins;
+  return [
+    ...previewPlugins.filter((extension) => extension !== paragraphSoftWrap),
+    livePreviewLineNumbers,
+    cmSourceGutterTheme,
+  ];
 }
 
 type FoldSnapshot = {

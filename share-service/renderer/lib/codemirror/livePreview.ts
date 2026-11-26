@@ -23,6 +23,8 @@ import {
   Decoration,
   DecorationSet,
   EditorView,
+  gutter,
+  GutterMarker,
   ViewPlugin,
   ViewUpdate,
   WidgetType,
@@ -1045,6 +1047,37 @@ const livePreviewPlugin = ViewPlugin.fromClass(
     decorations: (v) => v.decorations,
   },
 );
+
+class SourceLineNumber extends GutterMarker {
+  constructor(readonly number: number) { super(); }
+  eq(other: SourceLineNumber) { return this.number === other.number; }
+  toDOM() { return document.createTextNode(String(this.number)); }
+}
+
+function hiddenSourceLine(view: EditorView, from: number): boolean {
+  const decorations = view.plugin(livePreviewPlugin)?.decorations;
+  let hidden = false;
+  decorations?.between(from, from, (start, end, decoration) => {
+    if (start !== from || end !== from) return;
+    const classes = decoration.spec.attributes?.class ?? decoration.spec.class ?? "";
+    if (/\b(?:cm-code-fence|cm-md-hidden)\b/.test(classes)) hidden = true;
+  });
+  return hidden;
+}
+
+export const livePreviewLineNumbers = gutter({
+  class: "cm-lineNumbers",
+  lineMarker(view, line) {
+    if (hiddenSourceLine(view, line.from)) return null;
+    return new SourceLineNumber(view.state.doc.lineAt(line.from).number);
+  },
+  lineMarkerChange: (update) => update.selectionSet || update.focusChanged || update.docChanged ||
+    update.viewportChanged || update.transactions.some((transaction) => transaction.effects.length > 0),
+  initialSpacer: (view) => new SourceLineNumber(view.state.doc.lines),
+  updateSpacer: (marker, update) => update.docChanged
+    ? new SourceLineNumber(update.state.doc.lines)
+    : marker,
+});
 
 const codeBlockFolding = codeFolding({
   placeholderDOM() {

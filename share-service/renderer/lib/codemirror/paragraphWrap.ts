@@ -54,6 +54,14 @@ function buildSoftWraps(state: EditorState): DecorationSet {
       const endLine = doc.lineAt(node.to).number;
       if (endLine <= startLine) return; // single line: no interior break
 
+      const imageLines = new Set<number>();
+      if (!state.readOnly) {
+        const cursor = node.node.cursor();
+        cursor.iterate((child) => {
+          if (child.name === "Image") imageLines.add(doc.lineAt(child.from).number);
+        });
+      }
+
       for (let n = startLine; n < endLine; n++) {
         const line = doc.line(n);
         // Keep the hidden highlight marker on its own visual line. Joining it
@@ -64,7 +72,8 @@ function buildSoftWraps(state: EditorState): DecorationSet {
         if (HARD_BREAK_RE.test(line.text)) continue;
         const next = doc.line(n + 1);
         // Keep standalone images outside the surrounding editable text line.
-        if (!state.readOnly && (IMAGE_LINE_RE.test(line.text) || IMAGE_LINE_RE.test(next.text))) continue;
+        if (!state.readOnly && (imageLines.has(n) || imageLines.has(n + 1) ||
+            IMAGE_LINE_RE.test(line.text) || IMAGE_LINE_RE.test(next.text))) continue;
         // Swallow the "\n" plus the continuation line's leading indent, the way
         // a markdown soft break does, and render a single joining space.
         const lead = next.text.length - next.text.replace(/^\s+/, "").length;

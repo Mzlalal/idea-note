@@ -1,11 +1,5 @@
 @import "../../../share-service/renderer/lib/codemirror/editor.css";
 
-/* Separate images from editable prose, including existing inline Markdown. */
-.cm-content .cm-md-image-wrap {
-  display: block;
-  width: fit-content;
-}
-
 .cm-content .cm-md-image-wrap,
 .cm-content .cm-md-image-line .cm-md-image-wrap {
   position: relative;
