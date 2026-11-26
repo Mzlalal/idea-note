@@ -92,8 +92,8 @@ export const cmPlainTextTheme = EditorView.theme({
 
 // Line-number gutter for the Markdown editor (Settings › 编辑器 › 显示行号).
 export const cmSourceGutterTheme = EditorView.theme({
-  ".cm-content": { paddingInlineStart: "16px" },
-  ".cm-gutters": { borderInlineEnd: "1px solid var(--border)" },
+  "& .cm-scroller .cm-content": { paddingInlineStart: "16px" },
+  "& .cm-scroller .cm-gutters": { borderInlineEnd: "1px solid var(--border)" },
   ".cm-lineNumbers": { minWidth: "2.5em" },
   ".cm-lineNumbers .cm-gutterElement": {
     padding: "0 8px 0 12px",
