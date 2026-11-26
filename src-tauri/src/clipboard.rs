@@ -124,10 +124,10 @@ pub fn list_clipboard_files() -> Result<Vec<String>, String> {
 }
 
 /// Encode arboard's RGBA pixels as a PNG file.
-fn write_png(dest: &Path, image: &arboard::ImageData) -> Result<(), String> {
-    let file = fs::File::create(dest).map_err(|e| format!("create file failed: {e}"))?;
+fn encode_png(image: &arboard::ImageData) -> Result<Vec<u8>, String> {
+    let mut bytes = Vec::new();
     let mut encoder = png::Encoder::new(
-        std::io::BufWriter::new(file),
+        &mut bytes,
         image.width as u32,
         image.height as u32,
     );
@@ -139,7 +139,8 @@ fn write_png(dest: &Path, image: &arboard::ImageData) -> Result<(), String> {
     writer
         .write_image_data(&image.bytes)
         .map_err(|e| format!("png encode failed: {e}"))?;
-    Ok(())
+    writer.finish().map_err(|e| format!("png encode failed: {e}"))?;
+    Ok(bytes)
 }
 
 /// Save the image currently on the system clipboard into `dir` as `<stem>.png`
@@ -160,11 +161,8 @@ pub async fn save_clipboard_image_to_dir(
             Err(arboard::Error::ContentNotAvailable) => return Ok(None),
             Err(e) => return Err(format!("读取剪贴板图片失败: {e}")),
         };
-        let dir = PathBuf::from(&dir);
-        fs::create_dir_all(&dir).map_err(|e| format!("create dir failed: {e}"))?;
-        let dest = unique_dest(&dir, &format!("{stem}.png"));
-        write_png(&dest, &image)?;
-        Ok(Some(dest.to_string_lossy().to_string()))
+        let bytes = encode_png(&image)?;
+        crate::files::save_image_bytes(Path::new(&dir), &format!("{stem}.png"), &bytes).map(Some)
     })
     .await
     .map_err(|e| format!("clipboard image task failed: {e}"))?

@@ -52,7 +52,7 @@ import {
   cmSourceGutterTheme,
 } from "../../lib/codemirror/theme";
 import { setActiveView, getActiveView } from "../../lib/codemirror/activeView";
-import { handleEditorPaste } from "../../lib/attachments";
+import { cleanupPastedImages, handleEditorPaste } from "../../lib/attachments";
 import { fileDropCursor } from "../../lib/codemirror/fileDropCursor";
 import { computeActiveFormats, emptyFormats } from "../../lib/codemirror/activeFormats";
 import { isDraftPath, useAppStore, type MdViewMode } from "../../store/useAppStore";
@@ -178,7 +178,7 @@ export function CodeMirrorEditor({ active = true }: { active?: boolean }) {
   useEffect(() => {
     if (!hostRef.current) return;
 
-    const path = useAppStore.getState().activeFilePath;
+    const { activeFilePath: path, workspacePath } = useAppStore.getState();
     // Untitled drafts get the full markdown live-preview, same as .md files.
     const isMd = !!path && (isMarkdownFile(path) || isDraftPath(path));
 
@@ -371,6 +371,7 @@ export function CodeMirrorEditor({ active = true }: { active?: boolean }) {
       window.clearTimeout(scrollTimer);
       if (getActiveView() === view) setActiveView(null);
       viewRef.current = null;
+      cleanupPastedImages(view, workspacePath);
       view.destroy();
       // Revealing a block is scoped to this viewing of the note, not to the
       // session: closing it re-seals every block, so coming back shows locked

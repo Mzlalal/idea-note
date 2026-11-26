@@ -1,7 +1,10 @@
 // Basic file CRUD for the workspace (read/write/create/rename/delete) plus
 // the OS "Get Info" window.
 
+use std::collections::HashMap;
 use std::fs;
+use std::sync::{LazyLock, Mutex};
+use std::time::SystemTime;
 use std::path::{Path, PathBuf};
 
 use tauri::State;
@@ -54,11 +57,106 @@ pub fn write_file(
     fs::write(&path, bytes).map_err(|e| format!("write_file failed: {e}"))
 }
 
+// 只跟踪本进程创建的图片。复用后保留图片，供多个编辑器引用。
+static NEW_IMAGES: LazyLock<Mutex<HashMap<PathBuf, (SystemTime, u64)>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// 只比较等长的普通文件，避免读取无关文件或跟随符号链接。
+fn existing_image(dir: &Path, data: &[u8]) -> Option<PathBuf> {
+    fs::read_dir(dir).ok()?.flatten().find_map(|entry| {
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path).ok()?;
+        if !metadata.is_file() || metadata.len() != data.len() as u64 {
+            return None;
+        }
+        (fs::read(&path).ok()?.as_slice() == data).then_some(path)
+    })
+}
+
+/// 串行完成图片查重和写入，避免并发粘贴生成重复副本。
+pub(crate) fn save_image_bytes(dir: &Path, name: &str, data: &[u8]) -> Result<String, String> {
+    let mut new_images = NEW_IMAGES.lock().map_err(|e| e.to_string())?;
+    fs::create_dir_all(dir).map_err(|e| format!("create dir failed: {e}"))?;
+    if let Some(path) = existing_image(dir, data) {
+        new_images.remove(&path);
+        return Ok(path.to_string_lossy().into_owned());
+    }
+    let dest = unique_dest(dir, name);
+    fs::write(&dest, data).map_err(|e| format!("write_binary_file failed: {e}"))?;
+    if let Ok(modified) = fs::metadata(&dest).and_then(|meta| meta.modified()) {
+        new_images.insert(dest.clone(), (modified, data.len() as u64));
+    }
+    Ok(dest.to_string_lossy().into_owned())
+}
+
+/// 保守检查工作区笔记，任一读取失败时让调用方保留图片。
+fn markdown_references(dir: &Path, name: &str) -> std::io::Result<bool> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let kind = entry.file_type()?;
+        if kind.is_dir() && !matches!(entry.file_name().to_str(), Some(".git" | "node_modules")) {
+            if markdown_references(&path, name)? {
+                return Ok(true);
+            }
+        } else if kind.is_file()
+            && path.extension().and_then(|ext| ext.to_str()).is_some_and(|ext| {
+                ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown")
+            })
+        {
+            let bytes = fs::read(path)?;
+            let (text, _) = crate::encoding::decode(bytes)
+                .map_err(std::io::Error::other)?;
+            if text.contains(name) || text.contains(&name.replace(' ', "%20")) {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
+/// 编辑器退出后清理撤销留下的图片，使用回收站保留恢复能力。
+#[tauri::command]
+pub async fn trash_unused_pasted_images(workspace: String, paths: Vec<String>) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = Path::new(&workspace).canonicalize().map_err(|e| e.to_string())?;
+        let git = crate::git::git_binary()?;
+        for raw_path in paths {
+            let path = PathBuf::from(raw_path);
+            let mut new_images = NEW_IMAGES.lock().map_err(|e| e.to_string())?;
+            let Some(&(modified, size)) = new_images.get(&path) else {
+                continue;
+            };
+            let Ok(actual) = path.canonicalize() else { continue };
+            let Ok(relative) = actual.strip_prefix(&root) else { continue };
+            let Ok(meta) = fs::symlink_metadata(&path) else { continue };
+            if !meta.is_file() || meta.len() != size || meta.modified().ok() != Some(modified) {
+                continue;
+            }
+            let output = crate::proc::command(&git).current_dir(&root)
+                .args(["--literal-pathspecs", "ls-files", "--others", "--exclude-standard", "--"])
+                .arg(relative).output().map_err(|e| e.to_string())?;
+            if !output.status.success() || output.stdout.is_empty() {
+                continue;
+            }
+            let Some(name) = path.file_name().and_then(|name| name.to_str()) else { continue };
+            if matches!(markdown_references(&root, name), Ok(false)) {
+                trash::delete(&path).map_err(|e| e.to_string())?;
+                new_images.remove(&path);
+            }
+        }
+        Ok(())
+    }).await.map_err(|e| e.to_string())?
+}
+
 /// Write raw bytes (e.g. a pasted image blob) into `dir/name`, creating the
 /// directory if needed and suffixing the name on a clash. Returns the path
 /// actually written so the caller can build the markdown link from it.
 #[tauri::command]
-pub fn write_binary_file(dir: String, name: String, data: Vec<u8>) -> Result<String, String> {
+pub fn write_binary_file(dir: String, name: String, data: Vec<u8>, deduplicate: Option<bool>) -> Result<String, String> {
+    if deduplicate == Some(true) {
+        return save_image_bytes(Path::new(&dir), &name, &data);
+    }
     let d = PathBuf::from(&dir);
     fs::create_dir_all(&d).map_err(|e| format!("create dir failed: {e}"))?;
     let dest = unique_dest(&d, &name);
@@ -70,10 +168,14 @@ pub fn write_binary_file(dir: String, name: String, data: Vec<u8>) -> Result<Str
 /// suffix), creating the directory if needed. Backs pasting a real file that was
 /// copied in Finder/Explorer into a note. Returns the created path.
 #[tauri::command]
-pub fn save_file_to_dir(src: String, dir: String, name: String) -> Result<String, String> {
+pub fn save_file_to_dir(src: String, dir: String, name: String, deduplicate: Option<bool>) -> Result<String, String> {
     let source = PathBuf::from(&src);
     if !source.exists() {
         return Err(format!("not found: {src}"));
+    }
+    if deduplicate == Some(true) && source.is_file() {
+        let data = fs::read(&source).map_err(|e| format!("read image failed: {e}"))?;
+        return save_image_bytes(Path::new(&dir), &name, &data);
     }
     let d = PathBuf::from(&dir);
     fs::create_dir_all(&d).map_err(|e| format!("create dir failed: {e}"))?;
@@ -358,4 +460,35 @@ fn file_uri(path: &Path) -> Result<String, String> {
         }
     }
     Ok(uri)
+}
+
+#[cfg(test)]
+mod pasted_image_tests {
+    use super::{markdown_references, save_image_bytes};
+    use std::collections::HashMap;
+use std::fs;
+
+    #[test]
+    fn reuses_equal_bytes_and_preserves_name_clashes() {
+        let dir = tempfile::tempdir().unwrap();
+        let first = save_image_bytes(dir.path(), "image.jpg", b"abc").unwrap();
+        let duplicate = save_image_bytes(dir.path(), "other.jpg", b"abc").unwrap();
+        let different = save_image_bytes(dir.path(), "image.jpg", b"xyz").unwrap();
+
+        assert_eq!(first, duplicate);
+        assert!(different.ends_with("image 2.jpg"));
+        assert_eq!(fs::read(first).unwrap(), b"abc");
+        assert_eq!(fs::read(different).unwrap(), b"xyz");
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 2);
+    }
+    #[test]
+    fn detects_references_in_another_note_with_encoded_spaces() {
+        let dir = tempfile::tempdir().unwrap();
+        let nested = dir.path().join("nested");
+        fs::create_dir(&nested).unwrap();
+        fs::write(nested.join("note.md"), "![](../assets/image%202.jpg)").unwrap();
+        assert!(markdown_references(dir.path(), "image 2.jpg").unwrap());
+        assert!(!markdown_references(dir.path(), "unreferenced.jpg").unwrap());
+    }
+
 }

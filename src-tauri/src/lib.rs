@@ -218,6 +218,7 @@ pub fn run() {
             files::is_dir,
             files::write_file,
             files::write_binary_file,
+            files::trash_unused_pasted_images,
             files::save_file_to_dir,
             files::create_file,
             files::create_quick_note,

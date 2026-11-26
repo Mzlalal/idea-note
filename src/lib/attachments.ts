@@ -7,6 +7,7 @@ import { tr } from "../i18n/core.ts";
 //   3. real files dropped onto the editor from the OS (handleEditorDrop, whose
 //      paths come from the native drag-drop event App listens for)
 
+import { invoke } from "@tauri-apps/api/core";
 import type { EditorView } from "@codemirror/view";
 import { EditorSelection } from "@codemirror/state";
 
@@ -170,6 +171,30 @@ function insertRefs(view: EditorView, refs: Ref[], at?: number | null): void {
   view.focus();
 }
 
+const pastedImages = new WeakMap<EditorView, Map<string, string>>();
+
+function rememberPastedImage(view: EditorView, path: string, link: string): void {
+  let images = pastedImages.get(view);
+  if (!images) {
+    images = new Map();
+    pastedImages.set(view, images);
+  }
+  images.set(path, link);
+}
+
+/** 编辑器退出后重做历史随之释放，才回收没有引用的图片。 */
+export function cleanupPastedImages(view: EditorView, workspace: string | null): void {
+  const images = pastedImages.get(view);
+  pastedImages.delete(view);
+  if (!images || !workspace) return;
+  const content = view.state.doc.toString();
+  const paths = [...images].filter(([path, link]) => !content.includes(link) &&
+    !content.includes(basename(path))).map(([path]) => path);
+  if (paths.length) {
+    void invoke("trash_unused_pasted_images", { workspace, paths }).catch(console.warn);
+  }
+}
+
 const toastError = (e: unknown) =>
   useAppStore.getState().showToast(e instanceof Error ? e.message : String(e), "error");
 
@@ -186,9 +211,11 @@ async function saveBlobs(view: EditorView, files: File[]): Promise<void> {
     const name = sanitizeName(deriveBlobName(file, isImage));
     try {
       const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
-      const created = await writeBinaryFile(target.dir, name, bytes);
+      const created = await writeBinaryFile(target.dir, name, bytes, isImage);
       const finalName = basename(created);
-      refs.push({ link: target.makeLink(finalName), name: finalName, isImage });
+      const link = target.makeLink(finalName);
+      if (isImage) rememberPastedImage(view, created, link);
+      refs.push({ link, name: finalName, isImage });
     } catch (e) {
       toastError(e);
       return;
@@ -241,9 +268,11 @@ async function saveByPaths(
     }
     const name = sanitizeName(basename(src));
     try {
-      const created = await saveFileToDir(src, target.dir, name);
+      const created = await saveFileToDir(src, target.dir, name, isImage);
       const finalName = basename(created);
-      refs.push({ link: target.makeLink(finalName), name: finalName, isImage });
+      const link = target.makeLink(finalName);
+      if (isImage) rememberPastedImage(view, created, link);
+      refs.push({ link, name: finalName, isImage });
     } catch (e) {
       toastError(e);
       return;
@@ -294,9 +323,9 @@ async function savePastedFiles(view: EditorView, blobs: File[]): Promise<boolean
       const created = await saveClipboardImageToDir(target.dir, clipboardImageStem(blobs));
       if (created) {
         const finalName = basename(created);
-        insertRefs(view, [
-          { link: target.makeLink(finalName), name: finalName, isImage: true },
-        ]);
+        const link = target.makeLink(finalName);
+        rememberPastedImage(view, created, link);
+        insertRefs(view, [{ link, name: finalName, isImage: true }]);
         return true;
       }
     } catch (error) {

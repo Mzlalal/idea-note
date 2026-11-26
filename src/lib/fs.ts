@@ -121,13 +121,13 @@ export async function reportCreated<T extends string | string[] | null>(request:
 
 /** Write raw bytes into `dir/name` (created if needed; clashes get a " 2"
  *  suffix). Returns the path actually written. Backs pasting an image blob. */
-export const writeBinaryFile = (dir: string, name: string, data: number[]) =>
-  reportCreated(invoke<string>("write_binary_file", { dir, name, data }));
+export const writeBinaryFile = (dir: string, name: string, data: number[], deduplicate = false) =>
+  reportCreated(invoke<string>("write_binary_file", { dir, name, data, deduplicate }));
 
 /** Copy an existing file into `dir` under `name`. Returns the created path.
  *  Backs pasting a real file that was copied in Finder/Explorer into a note. */
-export const saveFileToDir = (src: string, dir: string, name: string) =>
-  reportCreated(invoke<string>("save_file_to_dir", { src, dir, name }));
+export const saveFileToDir = (src: string, dir: string, name: string, deduplicate = false) =>
+  reportCreated(invoke<string>("save_file_to_dir", { src, dir, name, deduplicate }));
 
 export const createFile = (dir: string, name: string) =>
   reportCreated(invoke<string>("create_file", { dir, name }));
