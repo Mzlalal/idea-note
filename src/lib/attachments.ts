@@ -284,7 +284,10 @@ async function savePastedFiles(view: EditorView, blobs: File[]): Promise<boolean
     /* no native file paths available — fall through */
   }
 
-  if (blobs.some((b) => b.type.startsWith("image/")) || await hasClipboardImage().catch(() => false)) {
+  if (blobs.some((b) => b.type.startsWith("image/")) || await hasClipboardImage().catch((error) => {
+    if (!blobs.length) throw error;
+    return false;
+  })) {
     const target = resolveTarget("image");
     if (!target) return true;
     try {
@@ -296,7 +299,8 @@ async function savePastedFiles(view: EditorView, blobs: File[]): Promise<boolean
         ]);
         return true;
       }
-    } catch {
+    } catch (error) {
+      if (!blobs.length) throw error;
       /* clipboard read failed — fall back to the blob bytes below */
     }
   }
@@ -339,6 +343,7 @@ export function handleEditorDrop(
  * paste. The actual file writes + link insertion run asynchronously.
  */
 export function handleEditorPaste(view: EditorView, event: ClipboardEvent): boolean {
+  if (view.state.readOnly) return false;
   const dt = event.clipboardData;
 
   const blobs: File[] = [];
@@ -351,14 +356,14 @@ export function handleEditorPaste(view: EditorView, event: ClipboardEvent): bool
     }
   }
 
-  // Plain text and no file on the clipboard → let CodeMirror paste it normally.
-  const types = dt ? Array.from(dt.types) : [];
-  if (blobs.length === 0 && types.some((t) => t.startsWith("text/"))) return false;
+  // WebKit sometimes exposes the file list without corresponding items.
+  if (blobs.length === 0 && dt) blobs.push(...Array.from(dt.files));
 
-  // A file is involved — either as a web blob, a real file on the native
-  // clipboard, or both. Prefer copying the on-disk file by path over reading
-  // the blob's bytes; see savePastedFiles.
+  // Keep text paste synchronous. An HTML flavor alone may represent an image
+  // whose bytes are only available through the system clipboard.
+  if (blobs.length === 0 && dt?.getData("text/plain")) return false;
+
   event.preventDefault();
-  void savePastedFiles(view, blobs);
+  void savePastedFiles(view, blobs).catch(toastError);
   return true;
 }
